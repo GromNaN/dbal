@@ -303,6 +303,16 @@ class QueryBuilder
     }
 
     /**
+     * Gets all defined types query parameters for the query being constructed.
+     *
+     * @return array The currently defined query parameters.
+     */
+    public function getParameterTypes()
+    {
+        return $this->paramTypes;
+    }
+
+    /**
      * Sets the position of the first result to retrieve (the "offset").
      *
      * @param integer $firstResult The first result to return.
