@@ -158,7 +158,9 @@ class ColumnTest extends TestCase
             ->create();
         self::assertSame('', $column->getComment());
 
-        $column->setComment('foo');
+        $column = $column->edit()
+            ->setComment('foo')
+            ->create();
         self::assertEquals('foo', $column->getComment());
 
         $columnArray = $column->toArray();
