@@ -486,6 +486,25 @@ class Schema extends AbstractAsset
     }
 
     /**
+     * Instantiates a new schema editor.
+     */
+    public static function editor(): SchemaEditor
+    {
+        return new SchemaEditor();
+    }
+
+    /**
+     * Instantiates a new schema editor seeded with this schema's tables, sequences, and configuration.
+     */
+    public function edit(): SchemaEditor
+    {
+        return self::editor()
+            ->setSchemaConfig($this->_schemaConfig)
+            ->setTables(...$this->getTables())
+            ->setSequences(...$this->getSequences());
+    }
+
+    /**
      * Cloning a Schema triggers a deep clone of all related assets.
      */
     public function __clone()
