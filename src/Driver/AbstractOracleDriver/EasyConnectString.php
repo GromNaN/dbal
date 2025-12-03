@@ -62,6 +62,14 @@ final class EasyConnectString
             );
         }
 
+        if (isset($params['dbname'])) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/7239',
+                'Using the "dbname" parameter is deprecated. Use "servicename" or "sid" instead.',
+            );
+        }
+
         if (isset($params['servicename']) || isset($params['dbname'])) {
             $serviceKey = 'SID';
 
@@ -72,6 +80,10 @@ final class EasyConnectString
             $serviceName = $params['servicename'] ?? $params['dbname'];
 
             $connectData[$serviceKey] = $serviceName;
+        }
+
+        if (isset($params['sid'])) {
+            $connectData['SID'] = $params['sid'];
         }
 
         if (isset($params['instancename'])) {

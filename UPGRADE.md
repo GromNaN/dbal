@@ -6,6 +6,13 @@ awareness about deprecated code.
 - Use of our low-overhead runtime deprecation API, details:
   https://github.com/doctrine/deprecations/
 
+# Upgrade to 4.5
+
+## Deprecated `dbname` connection parameter for `oci8` and `pdo_oci` connections.
+
+Using the `dbname` connection parameter for `oci8` and `pdo_oci` connections has been deprecated. Use `servicename` or
+`sid` instead.
+
 # Upgrade to 4.4
 
 ## Deprecated using current date, time and timestamp SQL expressions as default values
