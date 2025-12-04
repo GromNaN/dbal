@@ -80,12 +80,13 @@ class EasyConnectStringTest extends TestCase
     public function testParameterDeprecation(
         array $parameters,
         string $expectedConnectString,
+        string $deprecation,
         bool $expectDeprecation,
     ): void {
         if ($expectDeprecation) {
-            $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/7042');
+            $this->expectDeprecationWithIdentifier($deprecation);
         } else {
-            $this->expectNoDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/7042');
+            $this->expectNoDeprecationWithIdentifier($deprecation);
         }
 
         $string = EasyConnectString::fromConnectionParameters($parameters);
@@ -93,13 +94,16 @@ class EasyConnectStringTest extends TestCase
         self::assertSame($expectedConnectString, (string) $string);
     }
 
-    /** @return iterable<string, array{array<string, mixed>, string, bool}> */
+    /** @return iterable<string, array{array<string, mixed>, string, string, bool}> */
     public static function getConnectionParameters(): iterable
     {
         $serviceNameString = '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))'
             . '(CONNECT_DATA=(SERVICE_NAME=BILLING)))';
 
-        yield 'dbname-and-service' => [
+        $sidString = '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))'
+            . '(CONNECT_DATA=(SID=BILLING)))';
+
+        yield 'service' => [
             [
                 'host' => 'localhost',
                 'port' => 1521,
@@ -107,6 +111,18 @@ class EasyConnectStringTest extends TestCase
                 'service' => true,
             ],
             $serviceNameString,
+            'https://github.com/doctrine/dbal/pull/7239',
+            true,
+        ];
+
+        yield 'dbname' => [
+            [
+                'host' => 'localhost',
+                'port' => 1521,
+                'dbname' => 'BILLING',
+            ],
+            $sidString,
+            'https://github.com/doctrine/dbal/pull/7239',
             true,
         ];
 
@@ -117,6 +133,18 @@ class EasyConnectStringTest extends TestCase
                 'servicename' => 'BILLING',
             ],
             $serviceNameString,
+            'https://github.com/doctrine/dbal/pull/7042',
+            false,
+        ];
+
+        yield 'sid' => [
+            [
+                'host' => 'localhost',
+                'port' => 1521,
+                'sid' => 'BILLING',
+            ],
+            $sidString,
+            'https://github.com/doctrine/dbal/pull/7042',
             false,
         ];
     }
