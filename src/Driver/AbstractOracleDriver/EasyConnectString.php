@@ -48,6 +48,12 @@ final class EasyConnectString
         }
 
         if (! isset($params['host'])) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/7244',
+                'Not specifying either of the "host" and "connectstring" parameters is deprecated.',
+            );
+
             return new self($params['dbname'] ?? '');
         }
 
@@ -66,7 +72,8 @@ final class EasyConnectString
             Deprecation::trigger(
                 'doctrine/dbal',
                 'https://github.com/doctrine/dbal/pull/7239',
-                'Using the "dbname" parameter is deprecated. Use "servicename" or "sid" instead.',
+                'Using the "dbname" parameter is deprecated. Use "servicename", "sid" or "connectstring"'
+                    . ' instead.',
             );
         }
 
