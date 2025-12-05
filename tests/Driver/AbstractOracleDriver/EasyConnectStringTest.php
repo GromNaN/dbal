@@ -26,7 +26,6 @@ class EasyConnectStringTest extends TestCase
     public static function connectionParametersProvider(): iterable
     {
         return [
-            'empty-params' => [[],''],
             'common-params' => [
                 [
                     'host' => 'oracle.example.com',
@@ -147,5 +146,14 @@ class EasyConnectStringTest extends TestCase
             'https://github.com/doctrine/dbal/pull/7042',
             false,
         ];
+    }
+
+    public function testNoHostOrConnectStringSpecified(): void
+    {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/7244');
+
+        $string = EasyConnectString::fromConnectionParameters([]);
+
+        self::assertSame('', (string) $string);
     }
 }
