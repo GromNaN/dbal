@@ -467,7 +467,7 @@ SQL,
 
             $sqlByTable[$tableName] ??= $this->getCreateTableSQL($tableName);
 
-            if ($row['pk'] === 0 || $row['pk'] === '0' || $row['type'] !== 'INTEGER') {
+            if ($row['pk'] === 0 || $row['pk'] === '0') {
                 continue;
             }
 
@@ -481,7 +481,7 @@ SQL,
 
             $result[] = array_merge($row, [
                 'autoincrement' => isset($pkColumnNamesByTable[$tableName])
-                    && $pkColumnNamesByTable[$tableName] === [$columnName],
+                    && $pkColumnNamesByTable[$tableName] === [$columnName] && $row['type'] === 'INTEGER',
                 'collation' => $this->parseColumnCollationFromSQL($columnName, $tableSQL),
                 'comment' => $this->parseColumnCommentFromSQL($columnName, $tableSQL),
             ]);

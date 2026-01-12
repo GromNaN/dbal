@@ -521,6 +521,58 @@ SQL;
         );
     }
 
+    public function testIntrospectPrimaryKeyAutoincrement(): void
+    {
+        $this->dropTableIfExists('dbal_7271_1');
+        $this->dropTableIfExists('dbal_7271_2');
+        $this->dropTableIfExists('dbal_7271_3');
+
+        $ddl = <<<'DDL'
+        CREATE TABLE dbal_7271_1 (
+            user_id   INTEGER,
+            user_name VARCHAR,
+            PRIMARY KEY (user_id)
+        );
+        CREATE TABLE dbal_7271_2 (
+            user_id       INTEGER,
+            setting_name  VARCHAR,
+            setting_value TEXT,
+            PRIMARY KEY (user_id, setting_name)
+        );
+        CREATE TABLE dbal_7271_3 (
+            setting_name  VARCHAR,
+            setting_value VARCHAR,
+            PRIMARY KEY (setting_name)
+        );
+        DDL;
+
+        $this->connection->executeStatement($ddl);
+
+        $schemaManager = $this->connection->createSchemaManager();
+
+        $autoincrement1 = $schemaManager
+            ->introspectSchema()
+            ->getTable('dbal_7271_1')
+            ->getColumn('user_id')
+            ->getAutoincrement();
+
+        $autoincrement2 = $schemaManager
+            ->introspectSchema()
+            ->getTable('dbal_7271_2')
+            ->getColumn('user_id')
+            ->getAutoincrement();
+
+        $autoincrement3 = $schemaManager
+            ->introspectSchema()
+            ->getTable('dbal_7271_3')
+            ->getColumn('setting_name')
+            ->getAutoincrement();
+
+        self::assertTrue($autoincrement1, 'Integer PKs are implicitly autoincrement');
+        self::assertFalse($autoincrement2, 'Composite PKs cannot autoincrement');
+        self::assertFalse($autoincrement3, 'Non-integer PKs cannot autoincrement');
+    }
+
     public function testListTableNoSchemaEmulation(): void
     {
         $databasePlatform = $this->connection->getDatabasePlatform();
