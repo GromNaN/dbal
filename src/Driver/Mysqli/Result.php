@@ -81,8 +81,10 @@ final class Result implements ResultInterface
         // The following is necessary as PHP cannot handle references to properties properly
         $refs = &$this->boundValues;
 
-        if (! $this->statement->bind_result(...$refs)) {
-            throw StatementError::new($this->statement);
+        try {
+            $this->statement->bind_result(...$refs);
+        } catch (mysqli_sql_exception $e) {
+            throw StatementError::upcast($e);
         }
     }
 
@@ -92,10 +94,6 @@ final class Result implements ResultInterface
             $ret = $this->statement->fetch();
         } catch (mysqli_sql_exception $e) {
             throw StatementError::upcast($e);
-        }
-
-        if ($ret === false) {
-            throw StatementError::new($this->statement);
         }
 
         if ($ret === null) {
