@@ -122,7 +122,7 @@ final class Result implements ResultInterface
     public function getColumnName(int $index): string
     {
         if ($this->result === false) {
-            return '';
+            throw InvalidColumnIndex::new($index);
         }
 
         try {
