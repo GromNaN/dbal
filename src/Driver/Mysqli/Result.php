@@ -48,6 +48,7 @@ final class Result implements ResultInterface
             return false;
         }
 
+        /** @phpstan-ignore return.type */
         return $this->result->fetch_row() ?? false;
     }
 
@@ -78,6 +79,7 @@ final class Result implements ResultInterface
             return [];
         }
 
+        /** @phpstan-ignore return.type */
         return $this->result->fetch_all(MYSQLI_NUM);
     }
 
@@ -126,6 +128,7 @@ final class Result implements ResultInterface
         }
 
         try {
+            /** @phpstan-ignore property.nonObject */
             return $this->result->fetch_field_direct($index)->name;
         } catch (ValueError $exception) {
             throw InvalidColumnIndex::new($index, $exception);
