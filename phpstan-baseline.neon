@@ -7,6 +7,24 @@ parameters:
 			path: src/Driver/IBMDB2/Connection.php
 
 		-
+			rawMessage: 'Cannot access property $name on (object{name: string, orgname: string, table: string, orgtable: string, def: string, db: string, catalog: string, max_length: int, length: int, charsetnr: string, flags: int, type: int, decimals: int}&stdClass)|false.'
+			identifier: property.nonObject
+			count: 1
+			path: src/Driver/Mysqli/Result.php
+
+		-
+			rawMessage: 'Method Doctrine\DBAL\Driver\Mysqli\Result::fetchAllNumeric() should return list<list<mixed>> but returns list<array>.'
+			identifier: return.type
+			count: 1
+			path: src/Driver/Mysqli/Result.php
+
+		-
+			rawMessage: 'Method Doctrine\DBAL\Driver\Mysqli\Result::fetchNumeric() should return list<mixed>|false but returns array|false.'
+			identifier: return.type
+			count: 1
+			path: src/Driver/Mysqli/Result.php
+
+		-
 			rawMessage: 'Method Doctrine\DBAL\Driver\OCI8\Connection::exec() never returns numeric-string so it can be removed from the return type.'
 			identifier: return.unusedType
 			count: 1
