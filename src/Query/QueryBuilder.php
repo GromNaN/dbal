@@ -1471,7 +1471,15 @@ class QueryBuilder
             );
         }
 
-        return $this->connection->getDatabasePlatform()
+        $databasePlatform = $this->connection->getDatabasePlatform();
+        $unionParts       = [];
+        if (count($this->commonTableExpressions) > 0) {
+            $unionParts[] = $databasePlatform
+                ->createWithSQLBuilder()
+                ->buildSQL(...$this->commonTableExpressions);
+        }
+
+        $unionParts[] = $databasePlatform
             ->createUnionSQLBuilder()
             ->buildSQL(
                 new UnionQuery(
@@ -1480,6 +1488,8 @@ class QueryBuilder
                     new Limit($this->maxResults, $this->firstResult),
                 ),
             );
+
+        return implode(' ', $unionParts);
     }
 
     /**
