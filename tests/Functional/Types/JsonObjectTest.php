@@ -94,7 +94,7 @@ class JsonObjectTest extends FunctionalTestCase
 
         self::assertIsString($value);
 
-        $value = json_decode($value, false);
+        $value = $this->connection->convertToPHPValue($value, Types::JSON_OBJECT);
 
         self::assertIsObject($value);
 
