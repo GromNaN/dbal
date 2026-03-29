@@ -24,7 +24,7 @@ final class TypeRegistry
      *
      * @var array<string, class-string<Type>>
      */
-    public const BUILTIN_TYPES_MAP = [
+    private const BUILTIN_TYPES_MAP = [
         Types::ASCII_STRING         => AsciiStringType::class,
         Types::BIGINT               => BigIntType::class,
         Types::BINARY               => BinaryType::class,

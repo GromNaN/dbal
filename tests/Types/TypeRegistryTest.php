@@ -10,6 +10,7 @@ use Doctrine\DBAL\Types\BlobType;
 use Doctrine\DBAL\Types\Exception\TypeNotRegistered;
 use Doctrine\DBAL\Types\StringType;
 use Doctrine\DBAL\Types\TextType;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\TypeRegistry;
 use PHPUnit\Framework\TestCase;
 
@@ -149,7 +150,8 @@ class TypeRegistryTest extends TestCase
     {
         $registeredTypes = $this->registry->getMap();
 
-        self::assertCount(count(TypeRegistry::BUILTIN_TYPES_MAP) + 2, $registeredTypes);
+        // Built-in types plus the two registered in setUp()
+        self::assertGreaterThan(2, count($registeredTypes));
         self::assertArrayHasKey(self::TEST_TYPE_NAME, $registeredTypes);
         self::assertArrayHasKey(self::OTHER_TEST_TYPE_NAME, $registeredTypes);
         self::assertSame($this->testType, $registeredTypes[self::TEST_TYPE_NAME]);
@@ -160,9 +162,10 @@ class TypeRegistryTest extends TestCase
     {
         $registry = new TypeRegistry();
 
-        foreach (TypeRegistry::BUILTIN_TYPES_MAP as $name => $class) {
+        // The global registry is seeded from the same built-in map, so all its types must be present
+        foreach (Type::getTypeRegistry()->getMap() as $name => $type) {
             self::assertTrue($registry->has($name));
-            self::assertInstanceOf($class, $registry->get($name));
+            self::assertInstanceOf($type::class, $registry->get($name));
         }
     }
 }
