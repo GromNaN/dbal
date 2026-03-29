@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Types;
 
-use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Types\Exception\TypeAlreadyRegistered;
 use Doctrine\DBAL\Types\Exception\TypeNotFound;
 use Doctrine\DBAL\Types\Exception\TypeNotRegistered;
@@ -66,6 +65,7 @@ final class TypeRegistry
      *
      * @param array<string, Type> $instances
      *
+     * @throws TypeAlreadyRegistered
      * @throws TypesException
      */
     public function __construct(array $instances = [])
@@ -149,7 +149,8 @@ final class TypeRegistry
     /**
      * Overrides an already defined type to use a different implementation.
      *
-     * @throws Exception
+     * @throws TypeNotFound
+     * @throws TypeAlreadyRegistered
      */
     public function override(string $name, Type $type): void
     {

@@ -65,6 +65,7 @@ abstract class Type
 
     final public static function getTypeRegistry(): TypeRegistry
     {
+        // @phpstan-ignore missingType.checkedException
         return self::$typeRegistry ??= new TypeRegistry();
     }
 
