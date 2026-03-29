@@ -19,12 +19,53 @@ use function spl_object_id;
  */
 final class TypeRegistry
 {
+    /**
+     * The map of built-in Doctrine mapping types.
+     *
+     * @var array<string, class-string<Type>>
+     */
+    public const BUILTIN_TYPES_MAP = [
+        Types::ASCII_STRING         => AsciiStringType::class,
+        Types::BIGINT               => BigIntType::class,
+        Types::BINARY               => BinaryType::class,
+        Types::BLOB                 => BlobType::class,
+        Types::BOOLEAN              => BooleanType::class,
+        Types::DATE_MUTABLE         => DateType::class,
+        Types::DATE_IMMUTABLE       => DateImmutableType::class,
+        Types::DATEINTERVAL         => DateIntervalType::class,
+        Types::DATETIME_MUTABLE     => DateTimeType::class,
+        Types::DATETIME_IMMUTABLE   => DateTimeImmutableType::class,
+        Types::DATETIMETZ_MUTABLE   => DateTimeTzType::class,
+        Types::DATETIMETZ_IMMUTABLE => DateTimeTzImmutableType::class,
+        Types::DECIMAL              => DecimalType::class,
+        Types::NUMBER               => NumberType::class,
+        Types::ENUM                 => EnumType::class,
+        Types::FLOAT                => FloatType::class,
+        Types::GUID                 => GuidType::class,
+        Types::INTEGER              => IntegerType::class,
+        Types::JSON                 => JsonType::class,
+        Types::JSON_OBJECT          => JsonType::class,
+        Types::JSONB                => JsonbType::class,
+        Types::JSONB_OBJECT         => JsonbType::class,
+        Types::SIMPLE_ARRAY         => SimpleArrayType::class,
+        Types::SMALLFLOAT           => SmallFloatType::class,
+        Types::SMALLINT             => SmallIntType::class,
+        Types::STRING               => StringType::class,
+        Types::TEXT                 => TextType::class,
+        Types::TIME_MUTABLE         => TimeType::class,
+        Types::TIME_IMMUTABLE       => TimeImmutableType::class,
+    ];
+
     /** @var array<string, Type> Map of type names and their corresponding flyweight objects. */
     private array $instances;
     /** @var array<int, string> */
     private array $instancesReverseIndex;
 
     /**
+     * Creates a registry pre-populated with all built-in types. Additional types passed via
+     * {@param $instances} are registered on top; if a name matches a built-in type it is
+     * overridden rather than re-registered.
+     *
      * @param array<string, Type> $instances
      *
      * @throws TypesException
@@ -33,8 +74,19 @@ final class TypeRegistry
     {
         $this->instances             = [];
         $this->instancesReverseIndex = [];
+
+        foreach (self::BUILTIN_TYPES_MAP as $name => $class) {
+            $type                                              = new $class();
+            $this->instances[$name]                            = $type;
+            $this->instancesReverseIndex[spl_object_id($type)] = $name;
+        }
+
         foreach ($instances as $name => $type) {
-            $this->register($name, $type);
+            if (isset($this->instances[$name])) {
+                $this->override($name, $type);
+            } else {
+                $this->register($name, $type);
+            }
         }
     }
 

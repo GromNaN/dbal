@@ -21,41 +21,6 @@ use function is_string;
  */
 abstract class Type
 {
-    /**
-     * The map of supported doctrine mapping types.
-     */
-    private const BUILTIN_TYPES_MAP = [
-        Types::ASCII_STRING         => AsciiStringType::class,
-        Types::BIGINT               => BigIntType::class,
-        Types::BINARY               => BinaryType::class,
-        Types::BLOB                 => BlobType::class,
-        Types::BOOLEAN              => BooleanType::class,
-        Types::DATE_MUTABLE         => DateType::class,
-        Types::DATE_IMMUTABLE       => DateImmutableType::class,
-        Types::DATEINTERVAL         => DateIntervalType::class,
-        Types::DATETIME_MUTABLE     => DateTimeType::class,
-        Types::DATETIME_IMMUTABLE   => DateTimeImmutableType::class,
-        Types::DATETIMETZ_MUTABLE   => DateTimeTzType::class,
-        Types::DATETIMETZ_IMMUTABLE => DateTimeTzImmutableType::class,
-        Types::DECIMAL              => DecimalType::class,
-        Types::NUMBER               => NumberType::class,
-        Types::ENUM                 => EnumType::class,
-        Types::FLOAT                => FloatType::class,
-        Types::GUID                 => GuidType::class,
-        Types::INTEGER              => IntegerType::class,
-        Types::JSON                 => JsonType::class,
-        Types::JSON_OBJECT          => JsonType::class,
-        Types::JSONB                => JsonbType::class,
-        Types::JSONB_OBJECT         => JsonbType::class,
-        Types::SIMPLE_ARRAY         => SimpleArrayType::class,
-        Types::SMALLFLOAT           => SmallFloatType::class,
-        Types::SMALLINT             => SmallIntType::class,
-        Types::STRING               => StringType::class,
-        Types::TEXT                 => TextType::class,
-        Types::TIME_MUTABLE         => TimeType::class,
-        Types::TIME_IMMUTABLE       => TimeImmutableType::class,
-    ];
-
     private static ?TypeRegistry $typeRegistry = null;
 
     /**
@@ -98,21 +63,9 @@ abstract class Type
      */
     abstract public function getSQLDeclaration(array $column, AbstractPlatform $platform): string;
 
-    /** @throws TypesException */
     final public static function getTypeRegistry(): TypeRegistry
     {
-        return self::$typeRegistry ??= self::createTypeRegistry();
-    }
-
-    /** @throws TypesException */
-    private static function createTypeRegistry(): TypeRegistry
-    {
-        return new TypeRegistry(
-            array_map(
-                static fn ($class) => new $class(),
-                self::BUILTIN_TYPES_MAP,
-            ),
-        );
+        return self::$typeRegistry ??= new TypeRegistry();
     }
 
     /**

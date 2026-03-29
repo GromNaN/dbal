@@ -149,10 +149,20 @@ class TypeRegistryTest extends TestCase
     {
         $registeredTypes = $this->registry->getMap();
 
-        self::assertCount(2, $registeredTypes);
+        self::assertCount(count(TypeRegistry::BUILTIN_TYPES_MAP) + 2, $registeredTypes);
         self::assertArrayHasKey(self::TEST_TYPE_NAME, $registeredTypes);
         self::assertArrayHasKey(self::OTHER_TEST_TYPE_NAME, $registeredTypes);
         self::assertSame($this->testType, $registeredTypes[self::TEST_TYPE_NAME]);
         self::assertSame($this->otherTestType, $registeredTypes[self::OTHER_TEST_TYPE_NAME]);
+    }
+
+    public function testBuiltinTypesAvailableByDefault(): void
+    {
+        $registry = new TypeRegistry();
+
+        foreach (TypeRegistry::BUILTIN_TYPES_MAP as $name => $class) {
+            self::assertTrue($registry->has($name));
+            self::assertInstanceOf($class, $registry->get($name));
+        }
     }
 }
