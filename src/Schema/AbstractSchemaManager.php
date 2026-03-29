@@ -264,6 +264,8 @@ abstract class AbstractSchemaManager
                 $this->_getPortableTableForeignKeysList($foreignKeyColumnsByTable[$tableName] ?? []),
                 $tableOptionsByTable[$tableName] ?? [],
                 $configuration,
+                null,
+                $this->connection->getConfiguration(),
             );
         }
 
@@ -494,6 +496,9 @@ abstract class AbstractSchemaManager
             [],
             $this->listTableForeignKeys($name),
             $this->getTableOptions($name),
+            null,
+            null,
+            $this->connection->getConfiguration(),
         );
     }
 

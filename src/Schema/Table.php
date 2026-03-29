@@ -17,6 +17,7 @@ use Doctrine\DBAL\Schema\Exception\UniqueConstraintDoesNotExist;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\Parser\OptionallyQualifiedNameParser;
 use Doctrine\DBAL\Schema\Name\Parsers;
+use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Types\Exception\TypesException;
 use Doctrine\DBAL\Types\Type;
@@ -84,6 +85,8 @@ class Table extends AbstractNamedObject
 
     private bool $failedToParsePrimaryKeyConstraint = false;
 
+    private ?Configuration $dbalConfiguration = null;
+
     /**
      * @param array<Column>               $columns
      * @param array<Index>                $indexes
@@ -100,6 +103,7 @@ class Table extends AbstractNamedObject
         array $options = [],
         ?TableConfiguration $configuration = null,
         ?PrimaryKeyConstraint $primaryKeyConstraint = null,
+        ?Configuration $dbalConfiguration = null,
     ) {
         if ($name === '') {
             throw InvalidTableName::new($name);
@@ -109,7 +113,8 @@ class Table extends AbstractNamedObject
 
         $configuration ??= (new SchemaConfig())->toTableConfiguration();
 
-        $this->maxIdentifierLength = $configuration->getMaxIdentifierLength();
+        $this->maxIdentifierLength  = $configuration->getMaxIdentifierLength();
+        $this->dbalConfiguration    = $dbalConfiguration;
 
         foreach ($columns as $column) {
             $this->_addColumn($column);
@@ -386,7 +391,11 @@ class Table extends AbstractNamedObject
      */
     public function addColumn(string $name, string $typeName, array $options = []): Column
     {
-        $column = new Column($name, Type::getType($typeName), $options);
+        $type = $this->dbalConfiguration !== null
+            ? $this->dbalConfiguration->getTypeRegistry()->get($typeName)
+            : Type::getType($typeName);
+
+        $column = new Column($name, $type, $options);
 
         $this->_addColumn($column);
 

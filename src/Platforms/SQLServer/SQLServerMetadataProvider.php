@@ -221,8 +221,10 @@ final readonly class SQLServerMetadataProvider implements MetadataProvider
 
         $editor = Column::editor()
             ->setQuotedName($columnName)
-            ->setTypeName(
-                $this->platform->getDoctrineTypeMapping($dbType),
+            ->setType(
+                $this->connection->getConfiguration()->getTypeRegistry()->get(
+                    $this->platform->getDoctrineTypeMapping($dbType),
+                ),
             )
             ->setNotNull(! $isNullable)
             ->setAutoincrement((bool) $isIdentity);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Platforms;
 
+use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
@@ -107,6 +108,8 @@ abstract class AbstractPlatform
      */
     private ?UnquotedIdentifierFolding $unquotedIdentifierFolding = null;
 
+    private ?Configuration $configuration = null;
+
     public function __construct(?UnquotedIdentifierFolding $unquotedIdentifierFolding = null)
     {
         if ($unquotedIdentifierFolding === null) {
@@ -119,6 +122,17 @@ abstract class AbstractPlatform
         }
 
         $this->unquotedIdentifierFolding = $unquotedIdentifierFolding ?? UnquotedIdentifierFolding::UPPER;
+    }
+
+    /** @internal Called by Connection after platform creation. */
+    public function setConfiguration(Configuration $configuration): void
+    {
+        $this->configuration = $configuration;
+    }
+
+    private function getTypeRegistry(): Types\TypeRegistry
+    {
+        return $this->configuration?->getTypeRegistry() ?? Type::getTypeRegistry();
     }
 
     /**
@@ -171,8 +185,8 @@ abstract class AbstractPlatform
     {
         $this->initializeDoctrineTypeMappings();
 
-        foreach (Type::getTypesMap() as $typeName => $className) {
-            foreach (Type::getType($typeName)->getMappedDatabaseTypes($this) as $dbType) {
+        foreach ($this->getTypeRegistry()->getMap() as $typeName => $type) {
+            foreach ($type->getMappedDatabaseTypes($this) as $dbType) {
                 $dbType                             = strtolower($dbType);
                 $this->doctrineTypeMapping[$dbType] = $typeName;
             }
@@ -397,7 +411,7 @@ abstract class AbstractPlatform
             $this->initializeAllDoctrineTypeMappings();
         }
 
-        if (! Types\Type::hasType($doctrineType)) {
+        if (! $this->getTypeRegistry()->has($doctrineType)) {
             throw TypeNotFound::new($doctrineType);
         }
 
