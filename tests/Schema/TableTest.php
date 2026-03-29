@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Tests\Schema;
 
+use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
@@ -22,6 +23,7 @@ use Doctrine\DBAL\Schema\SchemaException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\UniqueConstraint;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\TypeRegistry;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use LogicException;
@@ -1785,5 +1787,17 @@ class TableTest extends TestCase
 
         $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/7125');
         $table->addForeignKeyConstraint('baz', ['id'], ['id']);
+    }
+
+    public function testAddColumnUsesConfigurationTypeRegistry(): void
+    {
+        $customType   = Type::getType(Types::INTEGER);
+        $registry     = new TypeRegistry([Types::INTEGER => $customType]);
+        $config       = (new Configuration())->setTypeRegistry($registry);
+
+        $table  = new Table('foo', [], [], [], [], [], null, null, $config);
+        $column = $table->addColumn('id', Types::INTEGER);
+
+        self::assertSame($customType, $column->getType());
     }
 }
