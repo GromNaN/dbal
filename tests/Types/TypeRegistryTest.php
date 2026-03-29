@@ -12,7 +12,9 @@ use Doctrine\DBAL\Types\StringType;
 use Doctrine\DBAL\Types\TextType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\TypeRegistry;
+use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 
 use function count;
 use function sprintf;
@@ -163,12 +165,20 @@ class TypeRegistryTest extends TestCase
 
     public function testBuiltinTypesAvailableByDefault(): void
     {
+        Type::getTypeRegistry()->register(__FUNCTION__, new class extends StringType {
+        });
         $registry = new TypeRegistry();
 
-        // The global registry is seeded from the same built-in map, so all its types must be present
-        foreach (Type::getTypeRegistry()->getMap() as $name => $type) {
-            self::assertTrue($registry->has($name), sprintf('Built-in type "%s" is missing from registry', $name));
-            self::assertInstanceOf($type::class, $registry->get($name), sprintf('Built-in type "%s" does not match expected class "%s"', $name, $type::class));
+        // Types from the singleton registry are not registered in a new instance
+        self::assertFalse($registry->has(__FUNCTION__));
+
+        // Check that all the constants from Types are registered by default
+        $constants = (new ReflectionClass(Types::class))->getConstants();
+        foreach ($constants as $typeName) {
+            self::assertTrue(
+                $registry->has($typeName),
+                sprintf('Built-in type "%s" is not registered by default.', $typeName),
+            );
         }
     }
 }
