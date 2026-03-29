@@ -15,6 +15,7 @@ use Doctrine\DBAL\Types\TypeRegistry;
 use PHPUnit\Framework\TestCase;
 
 use function count;
+use function sprintf;
 
 class TypeRegistryTest extends TestCase
 {
@@ -166,8 +167,8 @@ class TypeRegistryTest extends TestCase
 
         // The global registry is seeded from the same built-in map, so all its types must be present
         foreach (Type::getTypeRegistry()->getMap() as $name => $type) {
-            self::assertTrue($registry->has($name));
-            self::assertInstanceOf($type::class, $registry->get($name));
+            self::assertTrue($registry->has($name), sprintf('Built-in type "%s" is missing from registry', $name));
+            self::assertInstanceOf($type::class, $registry->get($name), sprintf('Built-in type "%s" does not match expected class "%s"', $name, $type::class));
         }
     }
 }
