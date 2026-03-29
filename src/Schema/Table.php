@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Schema;
 
+use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Schema\Exception\ColumnAlreadyExists;
 use Doctrine\DBAL\Schema\Exception\ColumnDoesNotExist;
 use Doctrine\DBAL\Schema\Exception\ForeignKeyDoesNotExist;
@@ -17,7 +18,6 @@ use Doctrine\DBAL\Schema\Exception\UniqueConstraintDoesNotExist;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\Parser\OptionallyQualifiedNameParser;
 use Doctrine\DBAL\Schema\Name\Parsers;
-use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Types\Exception\TypesException;
 use Doctrine\DBAL\Types\Type;
@@ -85,8 +85,6 @@ class Table extends AbstractNamedObject
 
     private bool $failedToParsePrimaryKeyConstraint = false;
 
-    private ?Configuration $dbalConfiguration = null;
-
     /**
      * @param array<Column>               $columns
      * @param array<Index>                $indexes
@@ -103,7 +101,7 @@ class Table extends AbstractNamedObject
         array $options = [],
         ?TableConfiguration $configuration = null,
         ?PrimaryKeyConstraint $primaryKeyConstraint = null,
-        ?Configuration $dbalConfiguration = null,
+        private ?Configuration $dbalConfiguration = null,
     ) {
         if ($name === '') {
             throw InvalidTableName::new($name);
@@ -113,8 +111,7 @@ class Table extends AbstractNamedObject
 
         $configuration ??= (new SchemaConfig())->toTableConfiguration();
 
-        $this->maxIdentifierLength  = $configuration->getMaxIdentifierLength();
-        $this->dbalConfiguration    = $dbalConfiguration;
+        $this->maxIdentifierLength = $configuration->getMaxIdentifierLength();
 
         foreach ($columns as $column) {
             $this->_addColumn($column);
@@ -391,9 +388,7 @@ class Table extends AbstractNamedObject
      */
     public function addColumn(string $name, string $typeName, array $options = []): Column
     {
-        $type = $this->dbalConfiguration !== null
-            ? $this->dbalConfiguration->getTypeRegistry()->get($typeName)
-            : Type::getType($typeName);
+        $type = $this->dbalConfiguration?->getTypeRegistry()->get($typeName) ?? Type::getType($typeName);
 
         $column = new Column($name, $type, $options);
 

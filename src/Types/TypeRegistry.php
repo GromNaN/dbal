@@ -21,8 +21,6 @@ final class TypeRegistry
 {
     /**
      * The map of built-in Doctrine mapping types.
-     *
-     * @var array<string, class-string<Type>>
      */
     private const BUILTIN_TYPES_MAP = [
         Types::ASCII_STRING         => AsciiStringType::class,

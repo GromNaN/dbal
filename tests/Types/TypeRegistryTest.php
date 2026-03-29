@@ -14,6 +14,8 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\TypeRegistry;
 use PHPUnit\Framework\TestCase;
 
+use function count;
+
 class TypeRegistryTest extends TestCase
 {
     private const TEST_TYPE_NAME       = 'test';

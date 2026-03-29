@@ -1791,9 +1791,9 @@ class TableTest extends TestCase
 
     public function testAddColumnUsesConfigurationTypeRegistry(): void
     {
-        $customType   = Type::getType(Types::INTEGER);
-        $registry     = new TypeRegistry([Types::INTEGER => $customType]);
-        $config       = (new Configuration())->setTypeRegistry($registry);
+        $customType = Type::getType(Types::INTEGER);
+        $registry   = new TypeRegistry([Types::INTEGER => $customType]);
+        $config     = (new Configuration())->setTypeRegistry($registry);
 
         $table  = new Table('foo', [], [], [], [], [], null, null, $config);
         $column = $table->addColumn('id', Types::INTEGER);

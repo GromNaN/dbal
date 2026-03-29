@@ -1279,7 +1279,8 @@ class Connection implements ServerVersionProvider
      */
     public function convertToDatabaseValue(mixed $value, string $type): mixed
     {
-        return $this->_config->getTypeRegistry()->get($type)->convertToDatabaseValue($value, $this->getDatabasePlatform());
+        return $this->_config->getTypeRegistry()->get($type)
+            ->convertToDatabaseValue($value, $this->getDatabasePlatform());
     }
 
     /**

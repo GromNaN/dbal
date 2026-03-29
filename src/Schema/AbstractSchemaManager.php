@@ -16,6 +16,7 @@ use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\Parsers;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Types\Exception\TypesException;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\Deprecations\Deprecation;
 use Throwable;
 
@@ -1270,6 +1271,12 @@ abstract class AbstractSchemaManager
     protected function _getPortableSequenceDefinition(array $sequence): Sequence
     {
         throw NotSupported::new(__METHOD__);
+    }
+
+    /** @throws TypesException */
+    final protected function getType(string $typeName): Type
+    {
+        return $this->connection->getConfiguration()->getTypeRegistry()->get($typeName);
     }
 
     /**
