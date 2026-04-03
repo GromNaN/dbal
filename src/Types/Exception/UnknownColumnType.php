@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Types\Exception;
 
 use Exception;
+use Throwable;
 
 use function sprintf;
 
 final class UnknownColumnType extends Exception implements TypesException
 {
-    public static function new(string $name): self
+    public static function new(string $name, Throwable|null $previous = null): self
     {
         return new self(
             sprintf(
@@ -23,6 +24,8 @@ final class UnknownColumnType extends Exception implements TypesException
                     . 'have a problem with the cache or forgot some mapping information.',
                 $name,
             ),
+            0,
+            $previous,
         );
     }
 }

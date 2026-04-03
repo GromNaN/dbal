@@ -10,17 +10,23 @@ use Doctrine\DBAL\Types\Exception\TypeNotRegistered;
 use Doctrine\DBAL\Types\Exception\TypesAlreadyExists;
 use Doctrine\DBAL\Types\Exception\TypesException;
 use Doctrine\DBAL\Types\Exception\UnknownColumnType;
+use InvalidArgumentException;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\ContainerInterface;
+use Symfony\Contracts\Service\ServiceProviderInterface;
+use WeakMap;
 
-use function spl_object_id;
+use function array_fill_keys;
+use function array_keys;
+use function get_debug_type;
+use function sprintf;
 
 /**
  * The type registry is responsible for holding a map of all known DBAL types.
  */
 final class TypeRegistry
 {
-    /**
-     * The map of built-in Doctrine mapping types.
-     */
+    /** Map of type names and their corresponding class names. */
     private const BUILTIN_TYPES_MAP = [
         Types::ASCII_STRING         => AsciiStringType::class,
         Types::BIGINT               => BigIntType::class,
@@ -54,37 +60,68 @@ final class TypeRegistry
     ];
 
     /** @var array<string, Type> Map of type names and their corresponding flyweight objects. */
-    private array $instances;
-    /** @var array<int, string> */
-    private array $instancesReverseIndex;
+    private array $instances = [];
+
+    /**
+     * Lazy factories for types not yet instantiated.
+     * Values are either a class-string (built-in) or a ContainerInterface (container type).
+     *
+     * @var array<string, class-string<Type>|ContainerInterface>
+     */
+    private array $factories = [];
+
+    /** @var WeakMap<Type, string> */
+    private WeakMap $instancesReverseIndex;
 
     /**
      * Creates a registry pre-populated with all built-in types. Additional types passed via
      * {@param $instances} are registered on top; if a name matches a built-in type it is
      * overridden rather than re-registered.
      *
-     * @param array<string, Type> $instances
+     * A {@see ServiceProviderInterface} can be passed instead of an array to lazy-load type
+     * instances from a service container. Types are resolved on first access and cached.
+     *
+     * @param array<string, Type|ContainerInterface>|ServiceProviderInterface<Type> $instances
      *
      * @throws TypeAlreadyRegistered
      * @throws TypesException
      */
-    public function __construct(array $instances = [])
+    public function __construct(array|ServiceProviderInterface $instances = [])
     {
-        $this->instances             = [];
-        $this->instancesReverseIndex = [];
+        $this->instancesReverseIndex = new WeakMap();
 
-        foreach (self::BUILTIN_TYPES_MAP as $name => $class) {
-            $type                                              = new $class();
-            $this->instances[$name]                            = $type;
-            $this->instancesReverseIndex[spl_object_id($type)] = $name;
+        if ($instances instanceof ServiceProviderInterface) {
+            $this->factories = array_fill_keys(array_keys($instances->getProvidedServices()), $instances);
+        } else {
+            foreach ($instances as $name => $instance) {
+                if ($instance instanceof ContainerInterface) {
+                    $this->factories[$name] = $instance;
+                    continue;
+                }
+
+                if (! $instance instanceof Type) {
+                    throw new InvalidArgumentException(sprintf(
+                        'Unexpected value for type "%s", got "%s".',
+                        $name,
+                        get_debug_type($instance),
+                    ));
+                }
+
+                if (isset($this->instancesReverseIndex[$instance])) {
+                    throw TypeAlreadyRegistered::new($instance);
+                }
+
+                $this->instances[$name]                 = $instance;
+                $this->instancesReverseIndex[$instance] = $name;
+            }
         }
 
-        foreach ($instances as $name => $type) {
-            if (isset($this->instances[$name])) {
-                $this->override($name, $type);
-            } else {
-                $this->register($name, $type);
+        foreach (self::BUILTIN_TYPES_MAP as $name => $class) {
+            if (isset($this->instances[$name]) || isset($this->factories[$name])) {
+                continue;
             }
+
+            $this->factories[$name] = $class;
         }
     }
 
@@ -96,9 +133,38 @@ final class TypeRegistry
     public function get(string $name): Type
     {
         $type = $this->instances[$name] ?? null;
-        if ($type === null) {
-            throw UnknownColumnType::new($name);
+        if ($type !== null) {
+            return $type;
         }
+
+        $factory = $this->factories[$name] ?? null;
+        if ($factory === null) {
+            throw TypeNotFound::new($name);
+        }
+
+        if ($factory instanceof ContainerInterface) {
+            try {
+                $type = $factory->get($name);
+            } catch (ContainerExceptionInterface $exception) {
+                unset($this->factories[$name]);
+                if (! $factory->has($name)) {
+                    throw UnknownColumnType::new($name, $exception);
+                }
+
+                // @phpstan-ignore missingType.checkedException
+                throw $exception;
+            }
+        } else {
+            $type = new $factory();
+        }
+
+        if (isset($this->instancesReverseIndex[$type])) {
+            throw TypeAlreadyRegistered::new($type);
+        }
+
+        unset($this->factories[$name]);
+        $this->instances[$name]             = $type;
+        $this->instancesReverseIndex[$type] = $name;
 
         return $type;
     }
@@ -124,7 +190,7 @@ final class TypeRegistry
      */
     public function has(string $name): bool
     {
-        return isset($this->instances[$name]);
+        return isset($this->instances[$name]) || isset($this->factories[$name]);
     }
 
     /**
@@ -134,7 +200,7 @@ final class TypeRegistry
      */
     public function register(string $name, Type $type): void
     {
-        if (isset($this->instances[$name])) {
+        if (isset($this->instances[$name]) || isset($this->factories[$name])) {
             throw TypesAlreadyExists::new($name);
         }
 
@@ -142,8 +208,8 @@ final class TypeRegistry
             throw TypeAlreadyRegistered::new($type);
         }
 
-        $this->instances[$name]                            = $type;
-        $this->instancesReverseIndex[spl_object_id($type)] = $name;
+        $this->instances[$name]             = $type;
+        $this->instancesReverseIndex[$type] = $name;
     }
 
     /**
@@ -156,16 +222,29 @@ final class TypeRegistry
     {
         $origType = $this->instances[$name] ?? null;
         if ($origType === null) {
-            throw TypeNotFound::new($name);
+            if (! isset($this->factories[$name])) {
+                throw TypeNotFound::new($name);
+            }
+
+            // Type is not yet instantiated — replace factory with the new instance directly
+            if (($this->findTypeName($type) ?? $name) !== $name) {
+                throw TypeAlreadyRegistered::new($type);
+            }
+
+            unset($this->factories[$name]);
+            $this->instances[$name]             = $type;
+            $this->instancesReverseIndex[$type] = $name;
+
+            return;
         }
 
         if (($this->findTypeName($type) ?? $name) !== $name) {
             throw TypeAlreadyRegistered::new($type);
         }
 
-        unset($this->instancesReverseIndex[spl_object_id($origType)]);
-        $this->instances[$name]                            = $type;
-        $this->instancesReverseIndex[spl_object_id($type)] = $name;
+        unset($this->instancesReverseIndex[$origType]);
+        $this->instances[$name]             = $type;
+        $this->instancesReverseIndex[$type] = $name;
     }
 
     /**
@@ -174,14 +253,21 @@ final class TypeRegistry
      * @internal
      *
      * @return array<string, Type>
+     *
+     * @throws TypesException
      */
     public function getMap(): array
     {
+        // Ensure all types are loaded before returning the map
+        foreach ($this->factories as $name => $factory) {
+            $this->get($name);
+        }
+
         return $this->instances;
     }
 
     private function findTypeName(Type $type): ?string
     {
-        return $this->instancesReverseIndex[spl_object_id($type)] ?? null;
+        return $this->instancesReverseIndex[$type] ?? null;
     }
 }
