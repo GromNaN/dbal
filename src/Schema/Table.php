@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Schema;
 
-use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Schema\Exception\ColumnAlreadyExists;
 use Doctrine\DBAL\Schema\Exception\ColumnDoesNotExist;
 use Doctrine\DBAL\Schema\Exception\ForeignKeyDoesNotExist;
@@ -21,6 +20,7 @@ use Doctrine\DBAL\Schema\Name\Parsers;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Types\Exception\TypesException;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\TypeRegistry;
 use Doctrine\Deprecations\Deprecation;
 use LogicException;
 
@@ -101,7 +101,7 @@ class Table extends AbstractNamedObject
         array $options = [],
         ?TableConfiguration $configuration = null,
         ?PrimaryKeyConstraint $primaryKeyConstraint = null,
-        private ?Configuration $dbalConfiguration = null,
+        private ?TypeRegistry $typeRegistry = null,
     ) {
         if ($name === '') {
             throw InvalidTableName::new($name);
@@ -388,7 +388,7 @@ class Table extends AbstractNamedObject
      */
     public function addColumn(string $name, string $typeName, array $options = []): Column
     {
-        $type = $this->dbalConfiguration?->getTypeRegistry()->get($typeName) ?? Type::getType($typeName);
+        $type = $this->typeRegistry?->get($typeName) ?? Type::getType($typeName);
 
         $column = new Column($name, $type, $options);
 

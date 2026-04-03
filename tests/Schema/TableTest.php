@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Tests\Schema;
 
-use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
@@ -1793,9 +1792,8 @@ class TableTest extends TestCase
     {
         $customType = Type::getType(Types::INTEGER);
         $registry   = new TypeRegistry([Types::INTEGER => $customType]);
-        $config     = (new Configuration())->setTypeRegistry($registry);
 
-        $table  = new Table('foo', [], [], [], [], [], null, null, $config);
+        $table  = new Table('foo', [], [], [], [], [], null, null, $registry);
         $column = $table->addColumn('id', Types::INTEGER);
 
         self::assertSame($customType, $column->getType());

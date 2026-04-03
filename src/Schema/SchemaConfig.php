@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Schema;
 
+use Doctrine\DBAL\Types\TypeRegistry;
+
 /**
  * Configuration for a Schema.
  */
 class SchemaConfig
 {
+    private ?TypeRegistry $typeRegistry = null;
     /** @var positive-int */
     protected int $maxIdentifierLength = 63;
 
@@ -65,6 +68,16 @@ class SchemaConfig
     public function setDefaultTableOptions(array $defaultTableOptions): void
     {
         $this->defaultTableOptions = $defaultTableOptions;
+    }
+
+    public function getTypeRegistry(): ?TypeRegistry
+    {
+        return $this->typeRegistry;
+    }
+
+    public function setTypeRegistry(TypeRegistry $typeRegistry): void
+    {
+        $this->typeRegistry = $typeRegistry;
     }
 
     public function toTableConfiguration(): TableConfiguration

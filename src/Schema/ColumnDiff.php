@@ -54,6 +54,13 @@ class ColumnDiff
 
     public function hasTypeChanged(): bool
     {
+        // TODO: This comparison by class is insufficient now that types can be distinct services sharing the same
+        // class (e.g. two differently configured instances of the same Type subclass). It also produces false
+        // negatives for built-in aliases that share a class: json and json_object both map to JsonType::class,
+        // so switching between them is not detected as a change.
+        // The fix is to compare Type instances by identity (===) once both the introspected schema and the
+        // target schema are guaranteed to resolve types from the same TypeRegistry, so the flyweight invariant
+        // (one instance per registered name) holds across both sides of the diff.
         return $this->newColumn->getType()::class !== $this->oldColumn->getType()::class;
     }
 

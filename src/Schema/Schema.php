@@ -391,7 +391,17 @@ class Schema extends AbstractAsset
      */
     public function createTable(string $name): Table
     {
-        $table = new Table($name, [], [], [], [], [], $this->_schemaConfig->toTableConfiguration());
+        $table = new Table(
+            $name,
+            [],
+            [],
+            [],
+            [],
+            [],
+            $this->_schemaConfig->toTableConfiguration(),
+            null,
+            $this->_schemaConfig->getTypeRegistry(),
+        );
         $this->_addTable($table);
 
         foreach ($this->_schemaConfig->getDefaultTableOptions() as $option => $value) {

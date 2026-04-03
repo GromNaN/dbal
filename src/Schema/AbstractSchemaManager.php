@@ -266,7 +266,7 @@ abstract class AbstractSchemaManager
                 $tableOptionsByTable[$tableName] ?? [],
                 $configuration,
                 null,
-                $this->connection->getConfiguration(),
+                $this->connection->getConfiguration()->getTypeRegistry(),
             );
         }
 
@@ -499,7 +499,7 @@ abstract class AbstractSchemaManager
             $this->getTableOptions($name),
             null,
             null,
-            $this->connection->getConfiguration(),
+            $this->connection->getConfiguration()->getTypeRegistry(),
         );
     }
 
@@ -1456,6 +1456,7 @@ abstract class AbstractSchemaManager
         }
 
         $schemaConfig->setDefaultTableOptions($params['defaultTableOptions']);
+        $schemaConfig->setTypeRegistry($this->connection->getConfiguration()->getTypeRegistry());
 
         return $schemaConfig;
     }
