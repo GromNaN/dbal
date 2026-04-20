@@ -11,13 +11,13 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use stdClass;
 
 use function is_resource;
 use function json_decode;
-use function ksort;
 use function stream_get_contents;
 
-class JsonTest extends FunctionalTestCase
+class JsonbObjectTest extends FunctionalTestCase
 {
     protected function setUp(): void
     {
@@ -30,7 +30,7 @@ class JsonTest extends FunctionalTestCase
                     ->create(),
                 Column::editor()
                     ->setUnquotedName('val')
-                    ->setTypeName(Types::JSON)
+                    ->setTypeName(Types::JSONB_OBJECT)
                     ->create(),
             )
             ->setPrimaryKeyConstraint(
@@ -48,15 +48,14 @@ class JsonTest extends FunctionalTestCase
         $id1 = 1;
         $id2 = 2;
 
-        $value1 = [
-            'firstKey' => 'firstVal',
-            'secondKey' => 'secondVal',
-            'nestedKey' => [
-                'nestedKey1' => 'nestedVal1',
-                'nestedKey2' => 2,
-            ],
-        ];
-        $value2 = json_decode('{"key1":"Val1","key2":2,"key3":"Val3"}', true);
+        $value1                        = new stdClass();
+        $value1->firstKey              = 'firstVal';
+        $value1->secondKey             = 'secondVal';
+        $value1->nestedKey             = new stdClass();
+        $value1->nestedKey->nestedKey1 = 'nestedVal1';
+        $value1->nestedKey->nestedKey2 = 2;
+
+        $value2 = json_decode('{"key1":"Val1","key2":2,"key3":"Val3"}', false);
 
         $this->insert($id1, $value1);
         $this->insert($id2, $value2);
@@ -64,32 +63,24 @@ class JsonTest extends FunctionalTestCase
         $res1 = $this->select($id1);
         $res2 = $this->select($id2);
 
-        // The returned arrays are not guaranteed to be in the same order so sort them
-        ksort($value1);
-        ksort($value2);
-        ksort($res1);
-        ksort($res2);
-
-        self::assertSame($value1, $res1);
-        self::assertSame($value2, $res2);
+        self::assertEquals($value1, $res1);
+        self::assertEquals($value2, $res2);
     }
 
-    /** @param array<mixed> $value */
-    private function insert(int $id, array $value): void
+    private function insert(int $id, object $value): void
     {
         $result = $this->connection->insert('json_test_table', [
             'id'  => $id,
             'val' => $value,
         ], [
             ParameterType::INTEGER,
-            Type::getType(Types::JSON),
+            Type::getType(Types::JSONB_OBJECT),
         ]);
 
         self::assertSame(1, $result);
     }
 
-    /** @return array<mixed> */
-    private function select(int $id): array
+    private function select(int $id): object
     {
         $value = $this->connection->fetchOne(
             'SELECT val FROM json_test_table WHERE id = ?',
@@ -103,12 +94,9 @@ class JsonTest extends FunctionalTestCase
 
         self::assertIsString($value);
 
-        $value = Type::getType(Types::JSON)->convertToPHPValue(
-            $value,
-            $this->connection->getDatabasePlatform(),
-        );
+        $value = $this->connection->convertToPHPValue($value, Types::JSONB_OBJECT);
 
-        self::assertIsArray($value);
+        self::assertIsObject($value);
 
         return $value;
     }
