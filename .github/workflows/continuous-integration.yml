@@ -130,24 +130,23 @@ jobs:
             - "libc"
         postgres-version:
           - "10"
-          - "16"
-          - "17"
+          - "18"
         extension:
           - "pgsql"
           - "pdo_pgsql"
         include:
           - php-version: "8.2"
-            postgres-version: "17"
+            postgres-version: "18"
             extension: "pgsql"
           - php-version: "8.2"
-            postgres-version: "17"
+            postgres-version: "18"
             extension: "pdo_pgsql"
           - php-version: "8.4"
             postgres-version: "15"
             extension: "pdo_pgsql"
             postgres-locale-provider: "icu"
           - php-version: "8.2"
-            postgres-version: "17"
+            postgres-version: "18"
             extension: "pdo_pgsql"
             config-file-suffix: "-stringify_fetches"
 
