@@ -395,7 +395,6 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
 
         $droppedIndexes = $this->indexIndexesByLowerCaseName($diff->getDroppedIndexes());
         $addedIndexes   = $this->indexIndexesByLowerCaseName($diff->getAddedIndexes());
-        $diffModified   = false;
 
         $noLongerPrimaryKeyColumns = [];
 
