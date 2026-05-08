@@ -43,7 +43,6 @@ final class Connection implements ConnectionInterface
     {
         $visitor = new ConvertParameters();
 
-        /** @phpstan-ignore missingType.checkedException */
         $this->parser->parse($sql, $visitor);
 
         $statementName = uniqid('dbal', true);
