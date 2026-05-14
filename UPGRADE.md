@@ -8,6 +8,12 @@ awareness about deprecated code.
 
 # Upgrade to 4.5
 
+## Deprecated `TableDiff::getRenamedIndexes()`
+
+The `TableDiff::getRenamedIndexes()` method has been deprecated. Use `TableDiff::getIndexRenames()` instead, which
+returns a list of `IndexRename` instances exposing the old name as an `UnqualifiedName` and the new `Index` directly,
+instead of an `array<string, Index>` keyed by the raw old name.
+
 ## Deprecated `Doctrine\DBAL\SQL\Parser\Exception`
 
 The SQL parser does not raise checked exceptions: the only thing it ever throws is

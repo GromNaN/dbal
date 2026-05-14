@@ -12,6 +12,7 @@ use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint\ReferentialAction;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Index\IndexType;
+use Doctrine\DBAL\Schema\IndexRename;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\NamedObject;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
@@ -781,6 +782,16 @@ abstract class AbstractComparatorTestCase extends TestCase
         $renamedIndexes = $tableDiff->getRenamedIndexes();
         self::assertArrayHasKey('idx_foo', $renamedIndexes);
         self::assertEquals('idx_bar', $renamedIndexes['idx_foo']->getObjectName()->toString());
+
+        self::assertEquals([
+            new IndexRename(
+                UnqualifiedName::unquoted('idx_foo'),
+                Index::editor()
+                    ->setUnquotedName('idx_bar')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+            ),
+        ], $tableDiff->getIndexRenames());
     }
 
     public function testDetectRenameIndexDisabled(): void

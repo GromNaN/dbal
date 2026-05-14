@@ -208,10 +208,34 @@ class TableDiff
         );
     }
 
-    /** @return array<string,Index> */
+    /**
+     * @deprecated Use {@see getIndexRenames()} instead.
+     *
+     * @return array<string,Index>
+     */
     public function getRenamedIndexes(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/7368',
+            '%s() is deprecated, use getIndexRenames() instead.',
+            __METHOD__,
+        );
+
         return $this->renamedIndexes;
+    }
+
+    /** @return list<IndexRename> */
+    public function getIndexRenames(): array
+    {
+        $renames = [];
+
+        foreach ($this->renamedIndexes as $oldName => $newIndex) {
+            /** @phpstan-ignore argument.type */
+            $renames[] = new IndexRename(UnqualifiedName::unquoted((string) $oldName), $newIndex);
+        }
+
+        return $renames;
     }
 
     /** @return array<ForeignKeyConstraint> */
