@@ -8,6 +8,11 @@ awareness about deprecated code.
 
 # Upgrade to 4.5
 
+## Deprecated `Schema` features
+
+The `Schema` constructor has been marked as internal. Use `Schema::editor()` to instantiate an editor and
+`SchemaEditor::create()` to create a schema.
+
 ## Deprecated `TableDiff::getRenamedIndexes()`
 
 The `TableDiff::getRenamedIndexes()` method has been deprecated. Use `TableDiff::getIndexRenames()` instead, which

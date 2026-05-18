@@ -79,6 +79,9 @@ class Schema extends AbstractAsset
     private bool $usesUnqualifiedNames = false;
 
     /**
+     * @internal since doctrine/dbal 4.5. Use {@link Schema::editor()} to instantiate an editor
+     *           and {@link SchemaEditor::create()} to create a schema.
+     *
      * @param array<Table>    $tables
      * @param array<Sequence> $sequences
      * @param array<string>   $namespaces
