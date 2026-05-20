@@ -38,7 +38,10 @@ class SchemaEditorTest extends TestCase
         $tableB   = $this->createTable('bar');
         $sequence = Sequence::editor()->setUnquotedName('a_seq')->create();
 
-        $schema = new Schema([$tableA, $tableB], [$sequence]);
+        $schema = Schema::editor()
+            ->setTables($tableA, $tableB)
+            ->addSequence($sequence)
+            ->create();
 
         $result = $schema->edit()->create();
 
@@ -51,7 +54,10 @@ class SchemaEditorTest extends TestCase
         $config = new SchemaConfig();
         $config->setName('public');
 
-        $schema = new Schema([$this->createTable('foo')], [], $config);
+        $schema = Schema::editor()
+            ->setSchemaConfig($config)
+            ->addTable($this->createTable('foo'))
+            ->create();
 
         $result = $schema->edit()->create();
 
@@ -339,11 +345,13 @@ class SchemaEditorTest extends TestCase
         $config = new SchemaConfig();
         $config->setName('public');
 
-        $schema = new Schema(
-            [$this->createTable('foo'), $this->createTable('bar', 'public')],
-            [],
-            $config,
-        );
+        $schema = Schema::editor()
+            ->setSchemaConfig($config)
+            ->setTables(
+                $this->createTable('foo'),
+                $this->createTable('bar', 'public'),
+            )
+            ->create();
 
         $result = $schema->edit()->create();
 
