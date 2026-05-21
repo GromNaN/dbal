@@ -21,7 +21,9 @@ class CreateAndDropSchemaObjectsSQLBuilderTest extends FunctionalTestCase
         $table1 = $this->createTable('t1', 't2');
         $table2 = $this->createTable('t2', 't1');
 
-        $schema = new Schema([$table1, $table2]);
+        $schema = Schema::editor()
+            ->setTables($table1, $table2)
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createSchemaObjects($schema);
