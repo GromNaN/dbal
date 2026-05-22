@@ -12,7 +12,6 @@ use Doctrine\DBAL\Schema\Index\IndexType;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\Schema;
-use Doctrine\DBAL\Schema\SchemaConfig;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableEditor;
@@ -49,13 +48,10 @@ class SchemaEditorTest extends TestCase
         self::assertSame([$sequence], $result->getSequences());
     }
 
-    public function testEditRoundTripPropagatesSchemaConfig(): void
+    public function testEditRoundTripPropagatesDefaultNamespace(): void
     {
-        $config = new SchemaConfig();
-        $config->setName('public');
-
         $schema = Schema::editor()
-            ->setSchemaConfig($config)
+            ->setDefaultNamespace('public')
             ->addTable($this->createTable('foo'))
             ->create();
 
@@ -248,11 +244,8 @@ class SchemaEditorTest extends TestCase
 
     public function testDefaultNamespaceLookupParity(): void
     {
-        $config = new SchemaConfig();
-        $config->setName('public');
-
         $editor = Schema::editor()
-            ->setSchemaConfig($config)
+            ->setDefaultNamespace('public')
             ->addTable($this->createTable('users'));
 
         // Lookup by unqualified name finds it.
@@ -275,11 +268,8 @@ class SchemaEditorTest extends TestCase
 
     public function testSequenceDefaultNamespaceLookupParity(): void
     {
-        $config = new SchemaConfig();
-        $config->setName('public');
-
         $editor = Schema::editor()
-            ->setSchemaConfig($config)
+            ->setDefaultNamespace('public')
             ->addSequence(Sequence::editor()->setUnquotedName('s')->create());
 
         // Drop by the qualified form (resolved against the default namespace) finds the entry added unqualified.
@@ -290,11 +280,8 @@ class SchemaEditorTest extends TestCase
 
     public function testQualifiedAndUnqualifiedCollideUnderDefaultNamespace(): void
     {
-        $config = new SchemaConfig();
-        $config->setName('public');
-
         $editor = Schema::editor()
-            ->setSchemaConfig($config)
+            ->setDefaultNamespace('public')
             ->addTable($this->createTable('foo'));
 
         $this->expectException(InvalidSchemaModification::class);
@@ -326,11 +313,8 @@ class SchemaEditorTest extends TestCase
 
     public function testMixedQualificationUnderDefaultNamespaceIsAccepted(): void
     {
-        $config = new SchemaConfig();
-        $config->setName('public');
-
         $schema = Schema::editor()
-            ->setSchemaConfig($config)
+            ->setDefaultNamespace('public')
             ->addTable($this->createTable('foo'))
             ->addTable($this->createTable('bar', 'public'))
             ->create();
@@ -342,11 +326,8 @@ class SchemaEditorTest extends TestCase
 
     public function testEditRoundTripPreservesMixedQualificationUnderDefaultNamespace(): void
     {
-        $config = new SchemaConfig();
-        $config->setName('public');
-
         $schema = Schema::editor()
-            ->setSchemaConfig($config)
+            ->setDefaultNamespace('public')
             ->setTables(
                 $this->createTable('foo'),
                 $this->createTable('bar', 'public'),
@@ -360,30 +341,24 @@ class SchemaEditorTest extends TestCase
         self::assertTrue($result->hasTable('public.bar'));
     }
 
-    public function testSetSchemaConfigAfterAddingTableThrows(): void
+    public function testSetDefaultNamespaceAfterAddingTableThrows(): void
     {
         $editor = Schema::editor()
             ->addTable($this->createTable('foo'));
 
-        $config = new SchemaConfig();
-        $config->setName('public');
-
         $this->expectException(InvalidSchemaModification::class);
 
-        $editor->setSchemaConfig($config);
+        $editor->setDefaultNamespace('public');
     }
 
-    public function testSetSchemaConfigAfterAddingSequenceThrows(): void
+    public function testSetDefaultNamespaceAfterAddingSequenceThrows(): void
     {
         $editor = Schema::editor()
             ->addSequence(Sequence::editor()->setUnquotedName('a_seq')->create());
 
-        $config = new SchemaConfig();
-        $config->setName('public');
-
         $this->expectException(InvalidSchemaModification::class);
 
-        $editor->setSchemaConfig($config);
+        $editor->setDefaultNamespace('public');
     }
 
     public function testWorkedExampleAddingUniqueIndex(): void

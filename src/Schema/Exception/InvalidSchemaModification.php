@@ -13,10 +13,10 @@ use function sprintf;
 /** @internal */
 final class InvalidSchemaModification extends LogicException implements SchemaException
 {
-    public static function schemaConfigMustBeSetBeforeAddingObjects(): self
+    public static function defaultNamespaceCanOnlyBeSetOnEmptyEditor(): self
     {
         return new self(
-            'The schema config must be set before any tables or sequences are added to the editor.',
+            'The default namespace can only be set on an empty editor.',
         );
     }
 

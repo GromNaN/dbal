@@ -549,7 +549,7 @@ class Schema extends AbstractAsset
     public function edit(): SchemaEditor
     {
         return self::editor()
-            ->setSchemaConfig($this->_schemaConfig)
+            ->setDefaultNamespace($this->_schemaConfig->getName())
             ->setTables(...$this->getTables())
             ->setSequences(...$this->getSequences());
     }

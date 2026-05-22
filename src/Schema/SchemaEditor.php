@@ -14,7 +14,8 @@ use function strtolower;
 
 final class SchemaEditor
 {
-    private SchemaConfig $schemaConfig;
+    /** @var ?non-empty-string */
+    private ?string $defaultNamespaceName = null;
 
     /** @var array<string, Table> */
     private array $tables = [];
@@ -25,16 +26,16 @@ final class SchemaEditor
     /** @internal Use {@link Schema::editor()} or {@link Schema::edit()} to create an instance */
     public function __construct()
     {
-        $this->schemaConfig = new SchemaConfig();
     }
 
-    public function setSchemaConfig(SchemaConfig $schemaConfig): self
+    /** @param ?non-empty-string $name */
+    public function setDefaultNamespace(?string $name): self
     {
         if ($this->tables !== [] || $this->sequences !== []) {
-            throw InvalidSchemaModification::schemaConfigMustBeSetBeforeAddingObjects();
+            throw InvalidSchemaModification::defaultNamespaceCanOnlyBeSetOnEmptyEditor();
         }
 
-        $this->schemaConfig = $schemaConfig;
+        $this->defaultNamespaceName = $name;
 
         return $this;
     }
@@ -210,7 +211,12 @@ final class SchemaEditor
     {
         $this->ensureUniformQualification();
 
-        return new Schema($this->tables, $this->sequences, $this->schemaConfig);
+        $schemaConfig = new SchemaConfig();
+        if ($this->defaultNamespaceName !== null) {
+            $schemaConfig->setName($this->defaultNamespaceName);
+        }
+
+        return new Schema($this->tables, $this->sequences, $schemaConfig);
     }
 
     private function getKey(OptionallyQualifiedName $name): string
@@ -241,15 +247,13 @@ final class SchemaEditor
             return $name;
         }
 
-        $defaultNamespace = $this->schemaConfig->getName();
-
-        if ($defaultNamespace === null) {
+        if ($this->defaultNamespaceName === null) {
             return $name;
         }
 
         return new OptionallyQualifiedName(
             $name->getUnqualifiedName(),
-            Identifier::quoted($defaultNamespace),
+            Identifier::quoted($this->defaultNamespaceName),
         );
     }
 
