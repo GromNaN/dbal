@@ -10,6 +10,7 @@ use Doctrine\DBAL\Schema\Name\Identifier;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 
+use function strcasecmp;
 use function strtolower;
 
 final class SchemaEditor
@@ -78,8 +79,15 @@ final class SchemaEditor
         $modification($editor);
         $newTable = $editor->create();
 
-        $newName = $newTable->getObjectName();
-        $newKey  = $this->getKey($newName);
+        $newName     = $newTable->getObjectName();
+        $oldResolved = $this->resolveName($tableName);
+        $newResolved = $this->resolveName($newName);
+
+        if (! $this->qualifiersEqual($oldResolved->getQualifier(), $newResolved->getQualifier())) {
+            throw InvalidSchemaModification::cannotChangeTableQualifier($oldResolved, $newResolved);
+        }
+
+        $newKey = $this->getKey($newName);
 
         if ($newKey === $key) {
             $this->tables[$key] = $newTable;
@@ -95,6 +103,15 @@ final class SchemaEditor
         $this->tables[$newKey] = $newTable;
 
         return $this;
+    }
+
+    private function qualifiersEqual(?Identifier $a, ?Identifier $b): bool
+    {
+        if ($a === null || $b === null) {
+            return $a === $b;
+        }
+
+        return strcasecmp($a->getValue(), $b->getValue()) === 0;
     }
 
     /**

@@ -167,6 +167,22 @@ class SchemaEditorTest extends TestCase
         });
     }
 
+    public function testModifyTableCannotChangeQualifier(): void
+    {
+        $editor = Schema::editor()
+            ->addTable($this->createTable('t', 'foo'));
+
+        $this->expectException(InvalidSchemaModification::class);
+
+        $editor->modifyTableByUnquotedName(
+            't',
+            static function (TableEditor $te): void {
+                $te->setUnquotedName('t', 'bar');
+            },
+            'foo',
+        );
+    }
+
     public function testRenameTablePreservesQualifier(): void
     {
         $schema = Schema::editor()

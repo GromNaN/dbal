@@ -39,4 +39,16 @@ final class InvalidSchemaModification extends LogicException implements SchemaEx
     {
         return new self(sprintf('Sequence %s does not exist in the schema.', $name->toString()));
     }
+
+    public static function cannotChangeTableQualifier(
+        OptionallyQualifiedName $oldName,
+        OptionallyQualifiedName $newName,
+    ): self {
+        return new self(sprintf(
+            'A table\'s namespace cannot be changed through modifyTable (attempted to move %s to %s). '
+            . 'Drop and re-add the table to move it across namespaces.',
+            $oldName->toString(),
+            $newName->toString(),
+        ));
+    }
 }
