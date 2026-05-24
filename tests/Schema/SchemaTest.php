@@ -235,9 +235,7 @@ class SchemaTest extends TestCase
         $schemaConfig = new SchemaConfig();
         $schemaConfig->setMaxIdentifierLength(5);
 
-        $schema = Schema::editor()
-            ->setSchemaConfig($schemaConfig)
-            ->create();
+        $schema = new Schema([], [], $schemaConfig);
 
         $table = $schema->createTable('smalltable');
         $table->addColumn('long_id', Types::INTEGER);
@@ -323,11 +321,8 @@ class SchemaTest extends TestCase
 
     public function testHasNamespace(): void
     {
-        $schemaConfig = new SchemaConfig();
-        $schemaConfig->setName('public');
-
         $schema = Schema::editor()
-            ->setSchemaConfig($schemaConfig)
+            ->setDefaultNamespace('public')
             ->create();
 
         self::assertFalse($schema->hasNamespace('foo'));
@@ -391,11 +386,8 @@ class SchemaTest extends TestCase
 
     public function testCreatesNamespaceThroughAddingTableImplicitly(): void
     {
-        $schemaConfig = new SchemaConfig();
-        $schemaConfig->setName('public');
-
         $schema = Schema::editor()
-            ->setSchemaConfig($schemaConfig)
+            ->setDefaultNamespace('public')
             ->create();
 
         self::assertFalse($schema->hasNamespace('foo'));
@@ -431,11 +423,8 @@ class SchemaTest extends TestCase
 
     public function testCreatesNamespaceThroughAddingSequenceImplicitly(): void
     {
-        $schemaConfig = new SchemaConfig();
-        $schemaConfig->setName('public');
-
         $schema = Schema::editor()
-            ->setSchemaConfig($schemaConfig)
+            ->setDefaultNamespace('public')
             ->create();
 
         self::assertFalse($schema->hasNamespace('foo'));
@@ -547,11 +536,8 @@ class SchemaTest extends TestCase
 
     public function testReferencingByUnqualifiedNameAmongQualifiedNamesWithDefaultNamespace(): void
     {
-        $schemaConfig = new SchemaConfig();
-        $schemaConfig->setName('public');
-
         $schema = Schema::editor()
-            ->setSchemaConfig($schemaConfig)
+            ->setDefaultNamespace('public')
             ->addTable(
                 $this->createTable('t', 'public'),
             )
