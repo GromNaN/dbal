@@ -139,8 +139,49 @@ final class IndexEditor
             throw InvalidIndexDefinition::nameNotSet();
         }
 
+        [$columnNames, $flags, $options] = $this->toIndexParameters($this->name);
+
+        return new Index(
+            $this->name->toString(),
+            $columnNames,
+            $this->type === IndexType::UNIQUE,
+            false,
+            $flags,
+            $options,
+        );
+    }
+
+    /**
+     * Adds the index described by this editor to the given table, generating its name from the table when no name is
+     * set.
+     *
+     * @internal Used by {@link TableEditor} to add an editor-described index to a table.
+     */
+    public function addToTable(Table $table): void
+    {
+        [$columnNames, $flags, $options] = $this->toIndexParameters($this->name ?? UnqualifiedName::unquoted('index'));
+
+        $indexName = $this->name?->toString();
+
+        if ($this->type === IndexType::UNIQUE) {
+            $table->addUniqueIndex($columnNames, $indexName, $options);
+
+            return;
+        }
+
+        $table->addIndex($columnNames, $indexName, $flags, $options);
+    }
+
+    /**
+     * Maps the editor's columns, flags, and options to the arguments the {@see Index} constructor and the
+     * {@see Table} index methods expect.
+     *
+     * @return array{non-empty-list<string>, list<string>, array<string, mixed>} the column names, flags, and options
+     */
+    private function toIndexParameters(UnqualifiedName $name): array
+    {
         if (count($this->columns) < 1) {
-            throw InvalidIndexDefinition::columnsNotSet($this->name);
+            throw InvalidIndexDefinition::columnsNotSet($name);
         }
 
         $columnNames = $lengths = $options = $flags = [];
@@ -173,13 +214,6 @@ final class IndexEditor
             $options['where'] = $this->predicate;
         }
 
-        return new Index(
-            $this->name->toString(),
-            $columnNames,
-            $this->type === IndexType::UNIQUE,
-            false,
-            $flags,
-            $options,
-        );
+        return [$columnNames, $flags, $options];
     }
 }
