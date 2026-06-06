@@ -8,6 +8,11 @@ awareness about deprecated code.
 
 # Upgrade to 4.5
 
+## Marked `AbstractNamedObject` and `AbstractOptionallyNamedObject` classes as internal
+
+The `AbstractNamedObject` and `AbstractOptionallyNamedObject` classes have been marked as internal. Use the
+`NamedObject` and `OptionallyNamedObject` interfaces instead.
+
 ## Deprecated `Schema` features
 
 The `Schema` constructor has been marked as internal. Use `Schema::editor()` to instantiate an editor and
