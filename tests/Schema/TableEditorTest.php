@@ -197,6 +197,8 @@ class TableEditorTest extends TestCase
                 ->create(),
             $table->getPrimaryKeyConstraint(),
         );
+
+        self::assertEquals(['user_name' => 'username'], $table->getRenamedColumns());
     }
 
     public function testRenameColumnToExistingName(): void

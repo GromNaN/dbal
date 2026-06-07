@@ -47,7 +47,7 @@ class Table extends AbstractNamedObject
     protected array $_columns = [];
 
     /** @var array<string, string> keys are new names, values are old names */
-    protected array $renamedColumns = [];
+    protected array $renamedColumns;
 
     /** @var Index[] */
     protected array $_indexes = [];
@@ -90,6 +90,7 @@ class Table extends AbstractNamedObject
      * @param array<UniqueConstraint>     $uniqueConstraints
      * @param array<ForeignKeyConstraint> $fkConstraints
      * @param array<string, mixed>        $options
+     * @param array<string, string>       $renamedColumns
      */
     public function __construct(
         string $name,
@@ -100,6 +101,7 @@ class Table extends AbstractNamedObject
         array $options = [],
         ?TableConfiguration $configuration = null,
         ?PrimaryKeyConstraint $primaryKeyConstraint = null,
+        array $renamedColumns = [],
     ) {
         if ($name === '') {
             throw InvalidTableName::new($name);
@@ -132,6 +134,8 @@ class Table extends AbstractNamedObject
         }
 
         $this->_options = array_merge($this->_options, $options);
+
+        $this->renamedColumns = $renamedColumns;
     }
 
     protected function getNameParser(): OptionallyQualifiedNameParser

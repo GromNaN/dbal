@@ -124,6 +124,41 @@ class TableTest extends TestCase
         self::assertCount(1, $table->getColumns());
     }
 
+    public function testRenameColumnThroughEditor(): void
+    {
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::STRING)
+                    ->create(),
+            )
+            ->create();
+
+        $table = $table->edit()
+            ->renameColumnByUnquotedName('foo', 'bar')
+            ->create();
+
+        self::assertTrue($table->hasColumn('bar'), 'Should now have bar column');
+        self::assertFalse($table->hasColumn('foo'), 'Should not have foo column anymore');
+        self::assertCount(1, $table->getColumns());
+        self::assertEquals(['bar' => 'foo'], $table->getRenamedColumns());
+
+        $table = $table->edit()
+            ->renameColumnByUnquotedName('bar', 'baz')
+            ->create();
+
+        self::assertTrue($table->hasColumn('baz'), 'Should now have baz column');
+        self::assertFalse($table->hasColumn('bar'), 'Should not have bar column anymore');
+
+        // The result of multiple consecutive edit-rename-column-and-create operations is different from
+        // Table::renameColumn(): each edit records the rename relative to the table it started from, so the renames
+        // do not chain across edits.
+        self::assertEquals(['baz' => 'bar'], $table->getRenamedColumns());
+        self::assertCount(1, $table->getColumns());
+    }
+
     public function testRenameColumnException(): void
     {
         $table = Table::editor()
@@ -157,6 +192,27 @@ class TableTest extends TestCase
         $table->renameColumn('baz', '`foo`');
         self::assertCount(1, $table->getRenamedColumns());
         $table->renameColumn('foo', 'Baz');
+        self::assertCount(1, $table->getColumns());
+        self::assertCount(0, $table->getRenamedColumns());
+    }
+
+    public function testRenameColumnLoopThroughEditor(): void
+    {
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('baz')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
+
+        $table = $table->edit()
+            ->renameColumnByUnquotedName('baz', 'foo')
+            ->renameColumnByUnquotedName('foo', 'Baz')
+            ->create();
+
         self::assertCount(1, $table->getColumns());
         self::assertCount(0, $table->getRenamedColumns());
     }
