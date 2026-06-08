@@ -29,6 +29,9 @@ final class TableEditor
     /** @var UnqualifiedNamedObjectSet<Index> */
     private UnqualifiedNamedObjectSet $indexes;
 
+    /** @var list<IndexEditor> */
+    private array $indexEditors = [];
+
     private ?PrimaryKeyConstraint $primaryKeyConstraint = null;
 
     /** @var OptionallyUnqualifiedNamedObjectSet<UniqueConstraint> */
@@ -346,9 +349,11 @@ final class TableEditor
         return $this->dropColumn(UnqualifiedName::unquoted($columnName));
     }
 
-    public function setIndexes(Index ...$indexes): self
+    /** Replaces the indexes, accepting {@see Index} objects and editors alike, as {@see addIndex()}. */
+    public function setIndexes(Index|IndexEditor ...$indexes): self
     {
         $this->indexes->clear();
+        $this->indexEditors = [];
 
         foreach ($indexes as $index) {
             $this->addIndex($index);
@@ -357,8 +362,18 @@ final class TableEditor
         return $this;
     }
 
-    public function addIndex(Index $index): self
+    /**
+     * Adds an index. An {@see Index} is added as is; an {@see IndexEditor} without a name produces an index whose
+     * name is generated from this table and the indexed columns.
+     */
+    public function addIndex(Index|IndexEditor $index): self
     {
+        if ($index instanceof IndexEditor) {
+            $this->indexEditors[] = $index;
+
+            return $this;
+        }
+
         try {
             $this->indexes->add($index);
         } catch (ObjectAlreadyExists $e) {
@@ -573,7 +588,7 @@ final class TableEditor
             $options['comment'] = $this->comment;
         }
 
-        return new Table(
+        $table = new Table(
             $this->name->toString(),
             $this->columns->toList(),
             $this->indexes->toList(),
@@ -584,5 +599,11 @@ final class TableEditor
             $this->primaryKeyConstraint,
             $this->renamedColumns,
         );
+
+        foreach ($this->indexEditors as $indexEditor) {
+            $indexEditor->addToTable($table);
+        }
+
+        return $table;
     }
 }

@@ -135,10 +135,16 @@ class DB2PlatformTest extends AbstractPlatformTestCase
                     ->setUnquotedColumnNames('id')
                     ->create(),
             )
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedColumnNames('name'),
+            )
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('composite_idx')
+                    ->setUnquotedColumnNames('id', 'name'),
+            )
             ->create();
-
-        $table->addIndex(['name']);
-        $table->addIndex(['id', 'name'], 'composite_idx');
 
         self::assertEquals(
             [

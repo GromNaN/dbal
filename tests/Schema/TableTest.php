@@ -819,6 +819,63 @@ class TableTest extends TestCase
         self::assertCount(1, $table->getIndexes());
     }
 
+    public function testAddIndexViaEditorGeneratesSameNamesAsMutators(): void
+    {
+        $columns = [
+            Column::editor()
+                ->setUnquotedName('a')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('b')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ];
+
+        $viaEditor = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(...$columns)
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedColumnNames('a', 'b'),
+            )
+            ->addIndex(
+                Index::editor()
+                    ->setType(IndexType::UNIQUE)
+                    ->setUnquotedColumnNames('a', 'b'),
+            )
+            ->create();
+
+        $viaMutators = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(...$columns)
+            ->create();
+        $viaMutators->addIndex(['a', 'b']);
+        $viaMutators->addUniqueIndex(['a', 'b']);
+
+        self::assertEquals($viaMutators->getIndexes(), $viaEditor->getIndexes());
+    }
+
+    public function testAddIndexEditorWithExplicitNameKeepsIt(): void
+    {
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('a')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('my_idx')
+                    ->setUnquotedColumnNames('a'),
+            )
+            ->create();
+
+        self::assertTrue($table->hasIndex('my_idx'));
+    }
+
     public function testAddForeignKeyIndexImplicitly(): void
     {
         $table = Table::editor()

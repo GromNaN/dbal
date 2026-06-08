@@ -16,6 +16,7 @@ use Doctrine\DBAL\Schema\DefaultExpression\CurrentDate;
 use Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Index\IndexType;
 use Doctrine\DBAL\Schema\Name\Identifier;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
@@ -192,9 +193,12 @@ abstract class AbstractPlatformTestCase extends TestCase
                     ->setNotNull(false)
                     ->create(),
             )
+            ->addIndex(
+                Index::editor()
+                    ->setType(IndexType::UNIQUE)
+                    ->setUnquotedColumnNames('foo', 'bar'),
+            )
             ->create();
-
-        $table->addUniqueIndex(['foo', 'bar']);
 
         $sql = $this->platform->getCreateTableSQL($table);
         self::assertEquals($this->getGenerateTableWithMultiColumnUniqueIndexSql(), $sql);
@@ -425,9 +429,11 @@ abstract class AbstractPlatformTestCase extends TestCase
                     ->setLength(255)
                     ->create(),
             )
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedColumnNames('create'),
+            )
             ->create();
-
-        $table->addIndex(['create']);
 
         $sql = $this->platform->getCreateTableSQL($table);
         self::assertEquals($this->getQuotedColumnInIndexSQL(), $sql);

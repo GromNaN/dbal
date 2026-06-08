@@ -1392,9 +1392,11 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
                     ->setUnquotedReferencedColumnNames('id')
                     ->create(),
             )
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedColumnNames('bar'),
+            )
             ->create();
-
-        $table->addIndex(['bar']);
 
         $this->dropAndCreateTable($table);
 
