@@ -361,6 +361,30 @@ class TableTest extends TestCase
         self::assertFalse($table->hasColumn('bar'));
     }
 
+    public function testDropColumnThroughEditor(): void
+    {
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
+
+        $table = $table->edit()
+            ->dropColumnByUnquotedName('foo')
+            ->create();
+
+        self::assertFalse($table->hasColumn('foo'));
+        self::assertTrue($table->hasColumn('bar'));
+    }
+
     public function testGetUnknownColumnThrowsException(): void
     {
         $table = Table::editor()
@@ -724,7 +748,7 @@ class TableTest extends TestCase
 
     public function testAddForeignKeyConstraintUnknownLocalColumnThrowsException(): void
     {
-        $table = Table::editor()
+        $editor = Table::editor()
             ->setUnquotedName('foo')
             ->setColumns(
                 Column::editor()
@@ -732,11 +756,17 @@ class TableTest extends TestCase
                     ->setTypeName(Types::INTEGER)
                     ->create(),
             )
-            ->create();
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('foo')
+                    ->setUnquotedReferencedTableName('bar')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            );
 
         $this->expectException(SchemaException::class);
 
-        $table->addForeignKeyConstraint('bar', ['foo'], ['id']);
+        $editor->create();
     }
 
     public function testAddForeignKeyConstraint(): void
@@ -749,9 +779,10 @@ class TableTest extends TestCase
                     ->setTypeName(Types::INTEGER)
                     ->create(),
             )
+            ->addForeignKeyConstraint(
+                new ForeignKeyConstraint(['id'], 'bar', ['id'], '', ['foo' => 'bar']),
+            )
             ->create();
-
-        $table->addForeignKeyConstraint('bar', ['id'], ['id'], ['foo' => 'bar']);
 
         $constraints = $table->getForeignKeys();
         self::assertCount(1, $constraints);
@@ -773,9 +804,13 @@ class TableTest extends TestCase
                     ->setTypeName(Types::INTEGER)
                     ->create(),
             )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('my_idx')
+                    ->setUnquotedColumnNames('ID')
+                    ->create(),
+            )
             ->create();
-
-        $table->addIndex(['ID'], 'my_idx');
 
         self::assertTrue($table->hasIndex('my_idx'));
         self::assertEquals(['ID'], $table->getIndex('my_idx')->getColumns());
@@ -812,9 +847,11 @@ class TableTest extends TestCase
                     ->setTypeName(Types::INTEGER)
                     ->create(),
             )
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedColumnNames('baz'),
+            )
             ->create();
-
-        $table->addIndex(['baz']);
 
         self::assertCount(1, $table->getIndexes());
     }
@@ -886,9 +923,14 @@ class TableTest extends TestCase
                     ->setTypeName(Types::INTEGER)
                     ->create(),
             )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('id')
+                    ->setUnquotedReferencedTableName('bar')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
             ->create();
-
-        $table->addForeignKeyConstraint('bar', ['id'], ['id'], ['foo' => 'bar']);
 
         $indexes = $table->getIndexes();
         self::assertCount(1, $indexes);
@@ -947,6 +989,16 @@ class TableTest extends TestCase
                     ->setTypeName(Types::STRING)
                     ->create(),
             )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('composite_idx')
+                    ->setUnquotedColumnNames('baz', 'bar')
+                    ->create(),
+                Index::editor()
+                    ->setUnquotedName('full_idx')
+                    ->setUnquotedColumnNames('bar', 'baz', 'bloo')
+                    ->create(),
+            )
             ->setForeignKeyConstraints(
                 ForeignKeyConstraint::editor()
                     ->setUnquotedReferencingColumnNames('bar', 'baz')
@@ -955,10 +1007,6 @@ class TableTest extends TestCase
                     ->create(),
             )
             ->create();
-
-        $table->addIndex(['baz', 'bar'], 'composite_idx');
-        $table->addIndex(['bar', 'baz', 'bloo'], 'full_idx');
-        $table->addForeignKeyConstraint('bar', ['bar', 'baz'], ['foo', 'baz']);
 
         self::assertCount(3, $table->getIndexes());
         self::assertTrue($table->hasIndex('composite_idx'));
@@ -979,16 +1027,25 @@ class TableTest extends TestCase
                     ->setTypeName(Types::INTEGER)
                     ->create(),
             )
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedColumnNames('baz'),
+            )
             ->create();
-
-        $table->addIndex(['baz']);
 
         $indexes = $table->getIndexes();
         self::assertCount(1, $indexes);
         $index = array_shift($indexes);
         self::assertNotNull($index);
 
-        $table->addUniqueIndex(['baz']);
+        $table = $table->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setType(IndexType::UNIQUE)
+                    ->setUnquotedColumnNames('baz'),
+            )
+            ->create();
+
         self::assertCount(2, $table->getIndexes());
         self::assertTrue($table->hasIndex($index->getName()));
     }
@@ -1003,10 +1060,17 @@ class TableTest extends TestCase
                     ->setTypeName(Types::INTEGER)
                     ->create(),
             )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('bar_idx')
+                    ->setUnquotedColumnNames('bar')
+                    ->create(),
+                Index::editor()
+                    ->setUnquotedName('duplicate_idx')
+                    ->setUnquotedColumnNames('bar')
+                    ->create(),
+            )
             ->create();
-
-        $table->addIndex(['bar'], 'bar_idx');
-        $table->addIndex(['bar'], 'duplicate_idx');
 
         self::assertCount(2, $table->getIndexes());
         self::assertTrue($table->hasIndex('bar_idx'));
@@ -1029,10 +1093,17 @@ class TableTest extends TestCase
                     ->setTypeName(Types::STRING)
                     ->create(),
             )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('bar_idx')
+                    ->setUnquotedColumnNames('bar')
+                    ->create(),
+                Index::editor()
+                    ->setUnquotedName('fulfilling_idx')
+                    ->setUnquotedColumnNames('bar', 'baz')
+                    ->create(),
+            )
             ->create();
-
-        $table->addIndex(['bar'], 'bar_idx');
-        $table->addIndex(['bar', 'baz'], 'fulfilling_idx');
 
         self::assertCount(2, $table->getIndexes());
         self::assertTrue($table->hasIndex('bar_idx'));
@@ -1092,7 +1163,14 @@ class TableTest extends TestCase
 
         self::assertCount(1, $localTable->getIndexes());
 
-        $localTable->addIndex(['id'], 'explicit_idx');
+        $localTable = $localTable->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('explicit_idx')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         self::assertCount(1, $localTable->getIndexes());
         self::assertTrue($localTable->hasIndex('explicit_idx'));
@@ -1165,16 +1243,28 @@ class TableTest extends TestCase
                     ->setTypeName(Types::INTEGER)
                     ->create(),
             )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('id')
+                    ->setUnquotedReferencedTableName('foreign')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
             ->create();
-
-        $localTable->addForeignKeyConstraint('foreign', ['id'], ['id']);
 
         self::assertCount(1, $localTable->getIndexes());
         self::assertTrue($localTable->hasIndex('IDX_8BD688E8BF396750'));
 
         $implicitIndex = $localTable->getIndex('IDX_8BD688E8BF396750');
 
-        $localTable->addIndex(['id'], 'IDX_8BD688E8BF396750');
+        $localTable = $localTable->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('IDX_8BD688E8BF396750')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         self::assertCount(1, $localTable->getIndexes());
         self::assertTrue($localTable->hasIndex('IDX_8BD688E8BF396750'));
@@ -1234,9 +1324,11 @@ class TableTest extends TestCase
                     ->setTypeName(Types::INTEGER)
                     ->create(),
             )
+            ->addIndex(
+                Index::editor()
+                    ->setQuotedColumnNames('foo', 'bar'),
+            )
             ->create();
-
-        $table->addIndex(['"foo"', '"bar"']);
 
         self::assertTrue($table->columnsAreIndexed(['"foo"', '"bar"']));
     }
@@ -1255,9 +1347,14 @@ class TableTest extends TestCase
                     ->setTypeName(Types::INTEGER)
                     ->create(),
             )
+            ->addForeignKeyConstraint(
+                ForeignKeyConstraint::editor()
+                    ->setQuotedReferencingColumnNames('foo', 'bar')
+                    ->setQuotedReferencedTableName('boing')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
             ->create();
-
-        $table->addForeignKeyConstraint('"boing"', ['"foo"', '"bar"'], ['id']);
 
         self::assertCount(1, $table->getForeignKeys());
     }
@@ -1298,6 +1395,33 @@ class TableTest extends TestCase
         self::assertFalse($table->hasIndex('idx'));
     }
 
+    public function testDropIndexThroughEditor(): void
+    {
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('idx')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        self::assertTrue($table->hasIndex('idx'));
+
+        $table = $table->edit()
+            ->dropIndexByUnquotedName('idx')
+            ->create();
+
+        self::assertFalse($table->hasIndex('idx'));
+    }
+
     public function testDropPrimaryKey(): void
     {
         $table = Table::editor()
@@ -1318,6 +1442,32 @@ class TableTest extends TestCase
         self::assertNotNull($table->getPrimaryKey());
 
         $table->dropPrimaryKey();
+        self::assertNull($table->getPrimaryKey());
+    }
+
+    public function testDropPrimaryKeyConstraintThroughEditor(): void
+    {
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        self::assertNotNull($table->getPrimaryKey());
+
+        $table = $table->edit()
+            ->dropPrimaryKeyConstraint()
+            ->create();
+
         self::assertNull($table->getPrimaryKey());
     }
 
@@ -1410,6 +1560,32 @@ class TableTest extends TestCase
         self::assertTrue($table->hasIndex('primary'));
         self::assertTrue($table->hasIndex('IDX_D87F7E0C8C736521'));
         self::assertTrue($table->hasIndex('UNIQ_D87F7E0C76FF8CAA78240498'));
+    }
+
+    public function testRenameIndexThroughEditor(): void
+    {
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('idx')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $table = $table->edit()
+            ->renameIndexByUnquotedName('idx', 'idx_new')
+            ->create();
+
+        self::assertFalse($table->hasIndex('idx'));
+        self::assertTrue($table->hasIndex('idx_new'));
     }
 
     public function testRenameNonExistingIndexToTheSameName(): void
