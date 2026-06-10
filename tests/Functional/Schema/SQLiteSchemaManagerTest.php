@@ -9,8 +9,10 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
+use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Index\IndexedColumn;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\SQLiteSchemaManager;
@@ -26,6 +28,7 @@ use function array_map;
 use function array_shift;
 use function array_values;
 use function assert;
+use function ksort;
 
 class SQLiteSchemaManagerTest extends SchemaManagerFunctionalTestCase
 {
@@ -314,6 +317,66 @@ SQL;
         $table = $schemaManager->introspectTable('nodes');
         $index = $table->getIndex('idx_name');
         self::assertSame(['name'], $index->getColumns());
+    }
+
+    public function testAlterIntrospectedTablePreservesIndexesAndForeignKeys(): void
+    {
+        $this->dropTableIfExists('tree_nodes');
+
+        $ddl = <<<'DDL'
+        CREATE TABLE tree_nodes (
+            id        INTEGER NOT NULL,
+            parent_id INTEGER,
+            name      TEXT,
+            weight    INTEGER,
+            PRIMARY KEY (id),
+            FOREIGN KEY (parent_id) REFERENCES tree_nodes (id)
+        )
+        DDL;
+
+        $this->connection->executeStatement($ddl);
+        $this->connection->executeStatement('CREATE UNIQUE INDEX idx_tree_name ON tree_nodes (name)');
+        $this->connection->executeStatement('CREATE INDEX idx_tree_parent ON tree_nodes (parent_id)');
+
+        $schemaManager = $this->connection->createSchemaManager();
+
+        $oldTable = $schemaManager->introspectTableByUnquotedName('tree_nodes');
+        $newTable = $oldTable->edit()
+            ->modifyColumnByUnquotedName(
+                'weight',
+                static function (ColumnEditor $editor): void {
+                    $editor->setTypeName(Types::STRING)
+                        ->setLength(32);
+                },
+            )
+            ->create();
+
+        $diff = $schemaManager->createComparator()->compareTables($oldTable, $newTable);
+        $schemaManager->alterTable($diff);
+
+        $table = $schemaManager->introspectTableByUnquotedName('tree_nodes');
+
+        self::assertCount(1, $table->getForeignKeys());
+
+        $indexes = [];
+        foreach ($table->getIndexes() as $index) {
+            $indexName = $index->getObjectName()->getIdentifier()->getValue();
+            if ($indexName === 'primary') {
+                continue;
+            }
+
+            $indexes[$indexName] = array_map(
+                static fn (IndexedColumn $indexedColumn): string => $indexedColumn
+                    ->getColumnName()
+                    ->getIdentifier()
+                    ->getValue(),
+                $index->getIndexedColumns(),
+            );
+        }
+
+        ksort($indexes);
+
+        self::assertSame(['idx_tree_name' => ['name'], 'idx_tree_parent' => ['parent_id']], $indexes);
     }
 
     public function testAlterTableWithSchema(): void
