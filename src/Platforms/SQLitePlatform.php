@@ -836,10 +836,10 @@ class SQLitePlatform extends AbstractPlatform
 
             $changed      = false;
             $indexColumns = [];
-            foreach ($index->getColumns() as $columnName) {
-                // the column names of an introspected index are quoted while the name map is keyed
-                // by the unquoted column names, so unquote before the lookup
-                $columnName           = (new Identifier($columnName))->getName();
+            foreach ($index->getIndexedColumns() as $indexedColumn) {
+                // Use the unquoted identifier value so the lookup is agnostic of whether the index
+                // was introspected (which marks its column names as quoted) or built in memory.
+                $columnName           = $indexedColumn->getColumnName()->getIdentifier()->getValue();
                 $normalizedColumnName = strtolower($columnName);
                 if (! isset($nameMap[$normalizedColumnName])) {
                     unset($indexes[$key]);
@@ -906,10 +906,10 @@ class SQLitePlatform extends AbstractPlatform
         foreach ($foreignKeys as $key => $constraint) {
             $changed      = false;
             $localColumns = [];
-            foreach ($constraint->getLocalColumns() as $columnName) {
-                // the referencing column names of an introspected foreign key constraint are quoted
-                // while the name map is keyed by the unquoted column names, so unquote before the lookup
-                $columnName           = (new Identifier($columnName))->getName();
+            foreach ($constraint->getReferencingColumnNames() as $referencingColumnName) {
+                // Use the unquoted identifier value so the lookup is agnostic of whether the constraint
+                // was introspected (which marks its column names as quoted) or built in memory.
+                $columnName           = $referencingColumnName->getIdentifier()->getValue();
                 $normalizedColumnName = strtolower($columnName);
                 if (! isset($nameMap[$normalizedColumnName])) {
                     unset($foreignKeys[$key]);

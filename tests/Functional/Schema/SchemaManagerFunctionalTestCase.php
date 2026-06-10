@@ -763,6 +763,128 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertEquals(['id'], array_map('strtolower', $foreignKey->getForeignColumns()));
     }
 
+    public function testAlterIntrospectedTablePreservesIndexesAndForeignKeys(): void
+    {
+        $referencedTable = Table::editor()
+            ->setUnquotedName('alter_introspected_ref')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $table = Table::editor()
+            ->setUnquotedName('alter_introspected')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('ref_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('name')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('weight')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('idx_intro_name')
+                    ->setUnquotedColumnNames('name')
+                    ->setType(IndexType::UNIQUE)
+                    ->create(),
+                Index::editor()
+                    ->setUnquotedName('idx_intro_ref')
+                    ->setUnquotedColumnNames('ref_id')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedName('fk_intro_ref')
+                    ->setUnquotedReferencingColumnNames('ref_id')
+                    ->setUnquotedReferencedTableName('alter_introspected_ref')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $platform = $this->connection->getDatabasePlatform();
+
+        $this->dropTableIfExists($table->getObjectName()->toSQL($platform));
+        $this->dropTableIfExists($referencedTable->getObjectName()->toSQL($platform));
+
+        $this->schemaManager->createTable($referencedTable);
+        $this->schemaManager->createTable($table);
+
+        // Modify an unrelated column to force a table alteration that does not touch
+        // the indexed or referencing columns.
+        $oldTable = $this->schemaManager->introspectTableByUnquotedName('alter_introspected');
+        $newTable = $oldTable->edit()
+            ->modifyColumnByUnquotedName('weight', static function (ColumnEditor $editor): void {
+                $editor->setTypeName(Types::STRING)
+                    ->setLength(32);
+            })
+            ->create();
+
+        $diff = $this->schemaManager->createComparator()->compareTables($oldTable, $newTable);
+        $this->schemaManager->alterTable($diff);
+
+        $table = $this->schemaManager->introspectTableByUnquotedName('alter_introspected');
+
+        // Read indexed column names through the non-deprecated accessors so the result is independent
+        // of how the index was obtained (introspection marks the column names as quoted).
+        $indexedColumnNames = static function (Index $index): array {
+            return array_map(
+                static function (IndexedColumn $column): string {
+                    return strtolower($column->getColumnName()->getIdentifier()->getValue());
+                },
+                $index->getIndexedColumns(),
+            );
+        };
+
+        // The indexes and foreign keys must survive the alteration.
+        self::assertTrue($table->hasIndex('idx_intro_name'));
+        self::assertSame(['name'], $indexedColumnNames($table->getIndex('idx_intro_name')));
+        self::assertSame(IndexType::UNIQUE, $table->getIndex('idx_intro_name')->getType());
+
+        self::assertTrue($table->hasIndex('idx_intro_ref'));
+        self::assertSame(['ref_id'], $indexedColumnNames($table->getIndex('idx_intro_ref')));
+
+        /** @var list<ForeignKeyConstraint> $foreignKeys */
+        $foreignKeys = array_values($table->getForeignKeys());
+        self::assertCount(1, $foreignKeys);
+        self::assertSame(
+            ['ref_id'],
+            array_map(
+                static fn (UnqualifiedName $name): string => strtolower($name->getIdentifier()->getValue()),
+                $foreignKeys[0]->getReferencingColumnNames(),
+            ),
+        );
+        self::assertSame(
+            'alter_introspected_ref',
+            strtolower($foreignKeys[0]->getReferencedTableName()->getUnqualifiedName()->getValue()),
+        );
+    }
+
     public function testTableInNamespace(): void
     {
         $platform = $this->connection->getDatabasePlatform();
