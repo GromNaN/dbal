@@ -324,10 +324,8 @@ abstract class AbstractSchemaManager
 
     private function validateTableName(string $input, string $methodName): void
     {
-        $parser = Parsers::getOptionallyQualifiedNameParser();
-
         try {
-            $tableName = $parser->parse($input);
+            $tableName = Parsers::parseOptionallyQualifiedName($input);
         } catch (Throwable $e) {
             Deprecation::trigger(
                 'doctrine/dbal',

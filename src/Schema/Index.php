@@ -651,11 +651,9 @@ class Index extends AbstractNamedObject
     {
         $columns = [];
 
-        $parser = Parsers::getUnqualifiedNameParser();
-
         foreach ($columnNames as $columnName) {
             try {
-                $parsedName = $parser->parse($columnName);
+                $parsedName = Parsers::parseUnqualifiedName($columnName);
             } catch (Throwable $e) {
                 Deprecation::trigger(
                     'doctrine/dbal',
