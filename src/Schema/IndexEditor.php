@@ -148,11 +148,9 @@ final class IndexEditor
             $columnNames[] = $column->getColumnName()->toString();
 
             $length = $column->getLength();
-            if ($length === null) {
-                continue;
+            if ($length !== null) {
+                $lengths[$i] = $column->getLength();
             }
-
-            $lengths[$i] = $column->getLength();
         }
 
         if (count($lengths) !== 0) {
