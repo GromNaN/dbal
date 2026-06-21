@@ -300,15 +300,13 @@ class DB2Platform extends AbstractPlatform
 
             $comment = $column->getComment();
 
-            if ($comment === '') {
-                continue;
+            if ($comment !== '') {
+                $commentsSQL[] = $this->getCommentOnColumnSQL(
+                    $tableNameSQL,
+                    $column->getQuotedName($this),
+                    $comment,
+                );
             }
-
-            $commentsSQL[] = $this->getCommentOnColumnSQL(
-                $tableNameSQL,
-                $column->getQuotedName($this),
-                $comment,
-            );
         }
 
         $needsReorg = false;

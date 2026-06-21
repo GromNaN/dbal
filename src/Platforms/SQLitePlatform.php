@@ -638,15 +638,13 @@ class SQLitePlatform extends AbstractPlatform
 
         foreach ($diff->getDroppedColumns() as $column) {
             $columnName = strtolower($column->getName());
-            if (! isset($columns[$columnName])) {
-                continue;
+            if (isset($columns[$columnName])) {
+                unset(
+                    $columns[$columnName],
+                    $oldColumnNames[$columnName],
+                    $newColumnNames[$columnName],
+                );
             }
-
-            unset(
-                $columns[$columnName],
-                $oldColumnNames[$columnName],
-                $newColumnNames[$columnName],
-            );
         }
 
         foreach ($diff->getChangedColumns() as $columnDiff) {
@@ -843,17 +841,15 @@ class SQLitePlatform extends AbstractPlatform
                 }
             }
 
-            if (! $changed) {
-                continue;
+            if ($changed) {
+                $indexes[$key] = new Index(
+                    $index->getName(),
+                    $indexColumns,
+                    $index->isUnique(),
+                    $index->isPrimary(),
+                    $index->getFlags(),
+                );
             }
-
-            $indexes[$key] = new Index(
-                $index->getName(),
-                $indexColumns,
-                $index->isUnique(),
-                $index->isPrimary(),
-                $index->getFlags(),
-            );
         }
 
         foreach ($diff->getDroppedIndexes() as $index) {
@@ -906,17 +902,15 @@ class SQLitePlatform extends AbstractPlatform
                 }
             }
 
-            if (! $changed) {
-                continue;
+            if ($changed) {
+                $foreignKeys[$key] = new ForeignKeyConstraint(
+                    $localColumns, // @phpstan-ignore argument.type
+                    $constraint->getForeignTableName(),
+                    $constraint->getForeignColumns(), // @phpstan-ignore argument.type
+                    $constraint->getName(),
+                    $constraint->getOptions(),
+                );
             }
-
-            $foreignKeys[$key] = new ForeignKeyConstraint(
-                $localColumns, // @phpstan-ignore argument.type
-                $constraint->getForeignTableName(),
-                $constraint->getForeignColumns(), // @phpstan-ignore argument.type
-                $constraint->getName(),
-                $constraint->getOptions(),
-            );
         }
 
         foreach ($diff->getDroppedForeignKeys() as $constraint) {

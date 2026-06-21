@@ -405,15 +405,13 @@ class SQLServerPlatform extends AbstractPlatform
 
             $comment = $column->getComment();
 
-            if ($comment === '') {
-                continue;
+            if ($comment !== '') {
+                $commentsSql[] = $this->getCreateColumnCommentSQL(
+                    $tableName,
+                    $column->getQuotedName($this),
+                    $comment,
+                );
             }
-
-            $commentsSql[] = $this->getCreateColumnCommentSQL(
-                $tableName,
-                $column->getQuotedName($this),
-                $comment,
-            );
         }
 
         foreach ($diff->getDroppedColumns() as $column) {
@@ -492,13 +490,11 @@ class SQLServerPlatform extends AbstractPlatform
             }
 
             if (
-                    $newColumn->getDefault() === null
-                    || (! $requireDropDefaultConstraint && ! $defaultChanged)
+                $newColumn->getDefault() !== null
+                && ($requireDropDefaultConstraint || $defaultChanged)
             ) {
-                continue;
+                $queryParts[] = $this->getAlterTableAddDefaultConstraintClause($tableName, $newColumn);
             }
-
-            $queryParts[] = $this->getAlterTableAddDefaultConstraintClause($tableName, $newColumn);
         }
 
         foreach ($queryParts as $query) {

@@ -1257,18 +1257,16 @@ class Table extends AbstractNamedObject
                 }
             }
 
-            if (! $modified) {
-                continue;
+            if ($modified) {
+                $this->_indexes[$key] = new Index(
+                    $index->getName(),
+                    $columns,
+                    $index->isUnique(),
+                    $index->isPrimary(),
+                    $index->getFlags(),
+                    $index->getOptions(),
+                );
             }
-
-            $this->_indexes[$key] = new Index(
-                $index->getName(),
-                $columns,
-                $index->isUnique(),
-                $index->isPrimary(),
-                $index->getFlags(),
-                $index->getOptions(),
-            );
         }
     }
 
@@ -1290,17 +1288,15 @@ class Table extends AbstractNamedObject
                 }
             }
 
-            if (! $modified) {
-                continue;
+            if ($modified) {
+                $this->_fkConstraints[$key] = new ForeignKeyConstraint(
+                    $localColumns, // @phpstan-ignore argument.type
+                    $constraint->getForeignTableName(),
+                    $constraint->getForeignColumns(), // @phpstan-ignore argument.type
+                    $constraint->getName(),
+                    $constraint->getOptions(),
+                );
             }
-
-            $this->_fkConstraints[$key] = new ForeignKeyConstraint(
-                $localColumns, // @phpstan-ignore argument.type
-                $constraint->getForeignTableName(),
-                $constraint->getForeignColumns(), // @phpstan-ignore argument.type
-                $constraint->getName(),
-                $constraint->getOptions(),
-            );
         }
     }
 
@@ -1322,16 +1318,14 @@ class Table extends AbstractNamedObject
                 }
             }
 
-            if (! $modified) {
-                continue;
+            if ($modified) {
+                $this->uniqueConstraints[$key] = new UniqueConstraint(
+                    $constraint->getName(),
+                    $columns, // @phpstan-ignore argument.type
+                    $constraint->getFlags(),
+                    $constraint->getOptions(),
+                );
             }
-
-            $this->uniqueConstraints[$key] = new UniqueConstraint(
-                $constraint->getName(),
-                $columns, // @phpstan-ignore argument.type
-                $constraint->getFlags(),
-                $constraint->getOptions(),
-            );
         }
     }
 
