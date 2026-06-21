@@ -8,6 +8,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Index\IndexType;
@@ -310,6 +311,50 @@ final class SchemaManagerTest extends FunctionalTestCase
 
         $table = $this->schemaManager->introspectTable('"example');
         self::assertCount(1, $table->getColumns());
+    }
+
+    #[TestWith([true])]
+    #[TestWith([false])]
+    public function testChangeColumnNullability(bool $notNull): void
+    {
+        $table = Table::editor()
+            ->setUnquotedName('change_column_nullability')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('val')
+                    ->setTypeName(Types::INTEGER)
+                    ->setNotNull(! $notNull)
+                    ->create(),
+            )
+            ->create();
+
+        $this->dropAndCreateTable($table);
+
+        $table = $this->schemaManager->introspectTable('change_column_nullability');
+
+        $newTable = $table->edit()
+            ->modifyColumnByUnquotedName('val', static function (ColumnEditor $editor) use ($notNull): void {
+                $editor->setNotNull($notNull);
+            })
+            ->create();
+
+        $diff = $this->schemaManager->createComparator()
+            ->compareTables($table, $newTable);
+
+        self::assertFalse($diff->isEmpty());
+
+        $this->schemaManager->alterTable($diff);
+
+        self::assertSame(
+            $notNull,
+            $this->schemaManager->introspectTable('change_column_nullability')
+                ->getColumn('val')
+                ->getNotnull(),
+        );
     }
 
     public function testAlterSequence(): void
