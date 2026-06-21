@@ -15,6 +15,7 @@ use Doctrine\DBAL\Schema\Name\Identifier;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
+use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
@@ -309,5 +310,53 @@ final class SchemaManagerTest extends FunctionalTestCase
 
         $table = $this->schemaManager->introspectTable('"example');
         self::assertCount(1, $table->getColumns());
+    }
+
+    public function testAlterSequence(): void
+    {
+        if (! $this->connection->getDatabasePlatform()->supportsSequences()) {
+            self::markTestSkipped('The platform does not support sequences.');
+        }
+
+        $name = 'alter_sequence_test_seq';
+
+        $this->schemaManager->createSequence(
+            Sequence::editor()
+                ->setUnquotedName($name)
+                ->setAllocationSize(1)
+                ->create(),
+        );
+
+        $oldSchema = $this->schemaManager->introspectSchema();
+
+        $sequence = $this->findSequence($oldSchema->getSequences(), $name);
+        self::assertNotNull($sequence);
+
+        $newSchema = clone $oldSchema;
+        $newSchema->dropSequence($sequence->getName());
+        $newSchema->createSequence($sequence->getName(), 5);
+
+        $diff = $this->schemaManager->createComparator()
+            ->compareSchemas($oldSchema, $newSchema);
+
+        self::assertFalse($diff->isEmpty());
+
+        $this->schemaManager->alterSchema($diff);
+
+        $sequence = $this->findSequence($this->schemaManager->introspectSequences(), $name);
+        self::assertNotNull($sequence);
+        self::assertSame(5, $sequence->getAllocationSize());
+    }
+
+    /** @param array<Sequence> $sequences */
+    private function findSequence(array $sequences, string $name): ?Sequence
+    {
+        foreach ($sequences as $sequence) {
+            if ($sequence->getShortestName($sequence->getNamespaceName()) === $name) {
+                return $sequence;
+            }
+        }
+
+        return null;
     }
 }
