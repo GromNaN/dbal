@@ -981,11 +981,9 @@ class Table extends AbstractNamedObject
                 continue;
             }
 
-            if (! $this->_indexes[$implicitIndexName]->isFulfilledBy($index)) {
-                continue;
+            if ($this->_indexes[$implicitIndexName]->isFulfilledBy($index)) {
+                $replacedImplicitIndexNames[$implicitIndexName] = true;
             }
-
-            $replacedImplicitIndexNames[$implicitIndexName] = true;
         }
 
         if ($this->_primaryKeyName !== null && $index->isPrimary()) {
@@ -1343,11 +1341,9 @@ class Table extends AbstractNamedObject
         $names = [];
 
         foreach ($this->_fkConstraints as $name => $constraint) {
-            if (! in_array($columnName, $constraint->getLocalColumns(), true)) {
-                continue;
+            if (in_array($columnName, $constraint->getLocalColumns(), true)) {
+                $names[] = $name;
             }
-
-            $names[] = $name;
         }
 
         return $names;
@@ -1359,11 +1355,9 @@ class Table extends AbstractNamedObject
         $names = [];
 
         foreach ($this->uniqueConstraints as $name => $constraint) {
-            if (! in_array($columnName, $constraint->getColumns(), true)) {
-                continue;
+            if (in_array($columnName, $constraint->getColumns(), true)) {
+                $names[] = $name;
             }
-
-            $names[] = $name;
         }
 
         return $names;
