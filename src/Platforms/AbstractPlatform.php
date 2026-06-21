@@ -1096,23 +1096,21 @@ abstract class AbstractPlatform
     final protected function validateCreateTableOptions(array $options, string $methodName): void
     {
         if (
-            isset(
+            ! isset(
                 $options['primary'],
                 $options['indexes'],
                 $options['uniqueConstraints'],
                 $options['foreignKeys'],
             )
         ) {
-            return;
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6805',
+                'Not passing $options or any of its following keys to %s() is deprecated:'
+                    . ' "primary", "indexes", "uniqueConstraints", "foreignKeys".',
+                $methodName,
+            );
         }
-
-        Deprecation::trigger(
-            'doctrine/dbal',
-            'https://github.com/doctrine/dbal/pull/6805',
-            'Not passing $options or any of its following keys to %s() is deprecated:'
-                . ' "primary", "indexes", "uniqueConstraints", "foreignKeys".',
-            $methodName,
-        );
     }
 
     public function getCreateTemporaryTableSnippetSQL(): string

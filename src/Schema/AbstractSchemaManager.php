@@ -252,19 +252,17 @@ abstract class AbstractSchemaManager
             ->toTableConfiguration();
 
         foreach ($tableColumnsByTable as $tableName => $tableColumns) {
-            if (! $filter($tableName)) {
-                continue;
+            if ($filter($tableName)) {
+                $tables[] = new Table(
+                    $tableName,
+                    $this->_getPortableTableColumnList($tableName, $database, $tableColumns),
+                    $this->_getPortableTableIndexesList($indexColumnsByTable[$tableName] ?? [], $tableName),
+                    [],
+                    $this->_getPortableTableForeignKeysList($foreignKeyColumnsByTable[$tableName] ?? []),
+                    $tableOptionsByTable[$tableName] ?? [],
+                    $configuration,
+                );
             }
-
-            $tables[] = new Table(
-                $tableName,
-                $this->_getPortableTableColumnList($tableName, $database, $tableColumns),
-                $this->_getPortableTableIndexesList($indexColumnsByTable[$tableName] ?? [], $tableName),
-                [],
-                $this->_getPortableTableForeignKeysList($foreignKeyColumnsByTable[$tableName] ?? []),
-                $tableOptionsByTable[$tableName] ?? [],
-                $configuration,
-            );
         }
 
         return $tables;
@@ -338,18 +336,16 @@ abstract class AbstractSchemaManager
             return;
         }
 
-        if ($tableName->getQualifier() === null || $this->platform->supportsSchemas()) {
-            return;
+        if ($tableName->getQualifier() !== null && ! $this->platform->supportsSchemas()) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6768',
+                'Relying on %s() not parsing an unquoted table name containing a dot while working with %s is'
+                    . ' deprecated. Pass a quoted name instead.',
+                $methodName,
+                $this->platform::class,
+            );
         }
-
-        Deprecation::trigger(
-            'doctrine/dbal',
-            'https://github.com/doctrine/dbal/pull/6768',
-            'Relying on %s() not parsing an unquoted table name containing a dot while working with %s is'
-                . ' deprecated. Pass a quoted name instead.',
-            $methodName,
-            $this->platform::class,
-        );
     }
 
     /**

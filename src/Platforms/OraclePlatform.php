@@ -337,12 +337,10 @@ class OraclePlatform extends AbstractPlatform
             }
 
             if (
-                ! isset($column['autoincrement']) || $column['autoincrement'] === false
+                isset($column['autoincrement']) && $column['autoincrement'] !== false
             ) {
-                continue;
+                $sql = array_merge($sql, $this->getCreateAutoincrementSql($column['name'], $name));
             }
-
-            $sql = array_merge($sql, $this->getCreateAutoincrementSql($column['name'], $name));
         }
 
         foreach ($indexes as $index) {
@@ -582,15 +580,13 @@ SQL,
             $addColumnSQL[] = $this->getColumnDeclarationSQL($column->getQuotedName($this), $column->toArray());
             $comment        = $column->getComment();
 
-            if ($comment === '') {
-                continue;
+            if ($comment !== '') {
+                $commentsSQL[] = $this->getCommentOnColumnSQL(
+                    $tableNameSQL,
+                    $column->getQuotedName($this),
+                    $comment,
+                );
             }
-
-            $commentsSQL[] = $this->getCommentOnColumnSQL(
-                $tableNameSQL,
-                $column->getQuotedName($this),
-                $comment,
-            );
         }
 
         if (count($addColumnSQL) > 0) {
@@ -646,15 +642,13 @@ SQL,
                 }
             }
 
-            if (! $columnDiff->hasCommentChanged()) {
-                continue;
+            if ($columnDiff->hasCommentChanged()) {
+                $commentsSQL[] = $this->getCommentOnColumnSQL(
+                    $tableNameSQL,
+                    $newColumn->getQuotedName($this),
+                    $newColumn->getComment(),
+                );
             }
-
-            $commentsSQL[] = $this->getCommentOnColumnSQL(
-                $tableNameSQL,
-                $newColumn->getQuotedName($this),
-                $newColumn->getComment(),
-            );
         }
 
         if (count($modifyColumnSQL) > 0) {

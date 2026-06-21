@@ -69,17 +69,15 @@ class TableDiff
             }
         }
 
-        if (count($modifiedForeignKeys) === 0) {
-            return;
+        if (count($modifiedForeignKeys) !== 0) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6827',
+                'Passing a non-empty $modifiedForeignKeys value to %s() is deprecated. Instead, pass dropped'
+                    . ' constraints via $droppedForeignKeys and added constraints via $addedForeignKeys.',
+                __METHOD__,
+            );
         }
-
-        Deprecation::trigger(
-            'doctrine/dbal',
-            'https://github.com/doctrine/dbal/pull/6827',
-            'Passing a non-empty $modifiedForeignKeys value to %s() is deprecated. Instead, pass dropped'
-                . ' constraints via $droppedForeignKeys and added constraints via $addedForeignKeys.',
-            __METHOD__,
-        );
     }
 
     public function getOldTable(): Table
