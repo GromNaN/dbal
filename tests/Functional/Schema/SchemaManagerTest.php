@@ -16,6 +16,7 @@ use Doctrine\DBAL\Schema\Name\Identifier;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
+use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
@@ -334,7 +335,7 @@ final class SchemaManagerTest extends FunctionalTestCase
 
         $this->dropAndCreateTable($table);
 
-        $table = $this->schemaManager->introspectTable('change_column_nullability');
+        $table = $this->schemaManager->introspectTableByUnquotedName('change_column_nullability');
 
         $newTable = $table->edit()
             ->modifyColumnByUnquotedName('val', static function (ColumnEditor $editor) use ($notNull): void {
@@ -351,7 +352,7 @@ final class SchemaManagerTest extends FunctionalTestCase
 
         self::assertSame(
             $notNull,
-            $this->schemaManager->introspectTable('change_column_nullability')
+            $this->schemaManager->introspectTableByUnquotedName('change_column_nullability')
                 ->getColumn('val')
                 ->getNotnull(),
         );
@@ -372,14 +373,21 @@ final class SchemaManagerTest extends FunctionalTestCase
                 ->create(),
         );
 
-        $oldSchema = $this->schemaManager->introspectSchema();
-
-        $sequence = $this->findSequence($oldSchema->getSequences(), $name);
+        $sequence = $this->findSequence($this->schemaManager->introspectSequences(), $name);
         self::assertNotNull($sequence);
 
-        $newSchema = clone $oldSchema;
-        $newSchema->dropSequence($sequence->getName());
-        $newSchema->createSequence($sequence->getName(), 5);
+        $oldSchema = Schema::editor()
+            ->addSequence($sequence)
+            ->create();
+
+        $newSchema = Schema::editor()
+            ->addSequence(
+                Sequence::editor()
+                    ->setName($sequence->getObjectName())
+                    ->setAllocationSize(5)
+                    ->create(),
+            )
+            ->create();
 
         $diff = $this->schemaManager->createComparator()
             ->compareSchemas($oldSchema, $newSchema);
@@ -393,11 +401,21 @@ final class SchemaManagerTest extends FunctionalTestCase
         self::assertSame(5, $sequence->getAllocationSize());
     }
 
-    /** @param array<Sequence> $sequences */
+    /**
+     * @param array<Sequence>  $sequences
+     * @param non-empty-string $name
+     *
+     * @throws Exception
+     */
     private function findSequence(array $sequences, string $name): ?Sequence
     {
+        $expectedName = Identifier::unquoted($name);
+
+        $folding = $this->connection->getDatabasePlatform()
+            ->getUnquotedIdentifierFolding();
+
         foreach ($sequences as $sequence) {
-            if ($sequence->getShortestName($sequence->getNamespaceName()) === $name) {
+            if ($sequence->getObjectName()->getUnqualifiedName()->equals($expectedName, $folding)) {
                 return $sequence;
             }
         }
