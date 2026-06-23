@@ -335,7 +335,7 @@ final class SchemaManagerTest extends FunctionalTestCase
 
         $this->dropAndCreateTable($table);
 
-        $table = $this->schemaManager->introspectTable('change_column_nullability');
+        $table = $this->schemaManager->introspectTableByUnquotedName('change_column_nullability');
 
         $newTable = $table->edit()
             ->modifyColumnByUnquotedName('val', static function (ColumnEditor $editor) use ($notNull): void {
@@ -352,7 +352,7 @@ final class SchemaManagerTest extends FunctionalTestCase
 
         self::assertSame(
             $notNull,
-            $this->schemaManager->introspectTable('change_column_nullability')
+            $this->schemaManager->introspectTableByUnquotedName('change_column_nullability')
                 ->getColumn('val')
                 ->getNotnull(),
         );
