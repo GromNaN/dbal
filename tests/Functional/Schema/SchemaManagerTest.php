@@ -393,6 +393,59 @@ final class SchemaManagerTest extends FunctionalTestCase
         self::assertSame(5, $sequence->getAllocationSize());
     }
 
+    public function testDropForeignKey(): void
+    {
+        $this->dropTableIfExists('orders');
+        $this->dropTableIfExists('articles');
+
+        $articles = Table::editor()
+            ->setUnquotedName('articles')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $orders = Table::editor()
+            ->setUnquotedName('orders')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('article_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedName('articles_fk')
+                    ->setUnquotedReferencingColumnNames('article_id')
+                    ->setUnquotedReferencedTableName('articles')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $this->schemaManager->createTable($articles);
+        $this->schemaManager->createTable($orders);
+
+        $this->schemaManager->dropForeignKey('articles_fk', 'orders');
+
+        self::assertEmpty(
+            $this->schemaManager->introspectTableByUnquotedName('orders')
+                ->getForeignKeys(),
+        );
+    }
+
     /** @param array<Sequence> $sequences */
     private function findSequence(array $sequences, string $name): ?Sequence
     {
