@@ -446,6 +446,170 @@ final class SchemaManagerTest extends FunctionalTestCase
         );
     }
 
+    /** @param callable(AbstractSchemaManager): list<Index> $introspect */
+    #[DataProvider('quotedAndUnquotedIndexIntrospection')]
+    public function testIntrospectTableIndexes(
+        OptionallyQualifiedName $tableName,
+        UnqualifiedName $indexName,
+        callable $introspect,
+    ): void {
+        $this->createTableWithIndex($tableName, $indexName);
+
+        self::assertNotEmpty($introspect($this->schemaManager));
+    }
+
+    /** @return iterable<string, array{
+     *     OptionallyQualifiedName,
+     *     UnqualifiedName,
+     *     callable(AbstractSchemaManager): list<Index>,
+     *  }> */
+    public static function quotedAndUnquotedIndexIntrospection(): iterable
+    {
+        yield 'unquoted name' => [
+            OptionallyQualifiedName::unquoted('Orders'),
+            UnqualifiedName::unquoted('Orders_index'),
+            static fn (AbstractSchemaManager $sm): array => $sm->introspectTableIndexesByUnquotedName('Orders'),
+        ];
+
+        yield 'quoted name' => [
+            OptionallyQualifiedName::quoted('Orders'),
+            UnqualifiedName::quoted('Orders_index'),
+            static fn (AbstractSchemaManager $sm): array => $sm->introspectTableIndexesByQuotedName('Orders'),
+        ];
+    }
+
+    /** @param callable(AbstractSchemaManager): list<ForeignKeyConstraint> $introspect */
+    #[DataProvider('quotedAndUnquotedForeignKeyIntrospection')]
+    public function testIntrospectTableForeignKeyConstraints(
+        OptionallyQualifiedName $referencedTableName,
+        OptionallyQualifiedName $referencingTableName,
+        UnqualifiedName $indexName,
+        UnqualifiedName $foreignKeyName,
+        callable $introspect,
+    ): void {
+        $this->createTablesWithForeignKey($referencedTableName, $referencingTableName, $indexName, $foreignKeyName);
+
+        self::assertNotEmpty($introspect($this->schemaManager));
+    }
+
+    /**
+     * @return iterable<string, array{
+     *     OptionallyQualifiedName,
+     *     OptionallyQualifiedName,
+     *     UnqualifiedName,
+     *     UnqualifiedName,
+     *     callable(AbstractSchemaManager): list<ForeignKeyConstraint>,
+     * }>
+     */
+    public static function quotedAndUnquotedForeignKeyIntrospection(): iterable
+    {
+        yield 'unquoted name' => [
+            OptionallyQualifiedName::unquoted('Articles'),
+            OptionallyQualifiedName::unquoted('Orders'),
+            UnqualifiedName::unquoted('Orders_article_id_index'),
+            UnqualifiedName::unquoted('Articles_fk'),
+            static function (AbstractSchemaManager $sm): array {
+                return $sm->introspectTableForeignKeyConstraintsByUnquotedName('Orders');
+            },
+        ];
+
+        yield 'quoted name' => [
+            OptionallyQualifiedName::quoted('Articles'),
+            OptionallyQualifiedName::quoted('Orders'),
+            UnqualifiedName::quoted('Orders_article_id_index'),
+            UnqualifiedName::quoted('Articles_fk'),
+            static function (AbstractSchemaManager $sm): array {
+                return $sm->introspectTableForeignKeyConstraintsByQuotedName('Orders');
+            },
+        ];
+    }
+
+    private function createTableWithIndex(OptionallyQualifiedName $tableName, UnqualifiedName $indexName): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+
+        $table = Table::editor()
+            ->setName($tableName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setName($indexName)
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $this->dropTableIfExists($table->getObjectName()->toSQL($platform));
+
+        $this->schemaManager->createTable($table);
+    }
+
+    private function createTablesWithForeignKey(
+        OptionallyQualifiedName $referencedTableName,
+        OptionallyQualifiedName $referencingTableName,
+        UnqualifiedName $indexName,
+        UnqualifiedName $foreignKeyName,
+    ): void {
+        $platform = $this->connection->getDatabasePlatform();
+
+        $referencedTable = Table::editor()
+            ->setName($referencedTableName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $referencingTable = Table::editor()
+            ->setName($referencingTableName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('article_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            // Create the index explicitly to prevent the implicit one, whose name is auto-generated.
+            // That generation is faulty for names that differ only in whether they are quoted.
+            // See https://github.com/doctrine/dbal/issues/7434
+            ->setIndexes(
+                Index::editor()
+                    ->setName($indexName)
+                    ->setUnquotedColumnNames('article_id')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setName($foreignKeyName)
+                    ->setUnquotedReferencingColumnNames('article_id')
+                    ->setReferencedTableName($referencedTableName)
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $this->dropTableIfExists($referencingTable->getObjectName()->toSQL($platform));
+        $this->dropTableIfExists($referencedTable->getObjectName()->toSQL($platform));
+
+        $this->schemaManager->createTable($referencedTable);
+        $this->schemaManager->createTable($referencingTable);
+    }
+
     /** @param array<Sequence> $sequences */
     private function findSequence(array $sequences, string $name): ?Sequence
     {
