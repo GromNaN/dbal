@@ -31,13 +31,16 @@ final class Types
     public const JSON_OBJECT          = 'json_object';
     public const JSONB                = 'jsonb';
     public const JSONB_OBJECT         = 'jsonb_object';
-    public const SIMPLE_ARRAY         = 'simple_array';
-    public const SMALLFLOAT           = 'smallfloat';
-    public const SMALLINT             = 'smallint';
-    public const STRING               = 'string';
-    public const TEXT                 = 'text';
-    public const TIME_MUTABLE         = 'time';
-    public const TIME_IMMUTABLE       = 'time_immutable';
+
+    /** @deprecated Use {@see Types::JSON} instead. */
+    public const SIMPLE_ARRAY = 'simple_array';
+
+    public const SMALLFLOAT     = 'smallfloat';
+    public const SMALLINT       = 'smallint';
+    public const STRING         = 'string';
+    public const TEXT           = 'text';
+    public const TIME_MUTABLE   = 'time';
+    public const TIME_IMMUTABLE = 'time_immutable';
 
     /** @codeCoverageIgnore */
     private function __construct()
