@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Tests\Functional\Schema;
 
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
@@ -608,6 +609,43 @@ final class SchemaManagerTest extends FunctionalTestCase
 
         $this->schemaManager->createTable($referencedTable);
         $this->schemaManager->createTable($referencingTable);
+    }
+
+    public function testIntrospectSchemaNamesOnSchemalessPlatform(): void
+    {
+        if ($this->connection->getDatabasePlatform()->supportsSchemas()) {
+            self::markTestSkipped('The platform supports schemas.');
+        }
+
+        $this->expectException(NotSupported::class);
+
+        $this->schemaManager->introspectSchemaNames();
+    }
+
+    public function testIntrospectSequencesWithoutSequenceSupport(): void
+    {
+        if ($this->connection->getDatabasePlatform()->supportsSequences()) {
+            self::markTestSkipped('The platform supports sequences.');
+        }
+
+        $this->expectException(NotSupported::class);
+
+        $this->schemaManager->introspectSequences();
+    }
+
+    public function testCreateSequenceWithoutSequenceSupport(): void
+    {
+        if ($this->connection->getDatabasePlatform()->supportsSequences()) {
+            self::markTestSkipped('The platform supports sequences.');
+        }
+
+        $this->expectException(NotSupported::class);
+
+        $this->schemaManager->createSequence(
+            Sequence::editor()
+                ->setUnquotedName('s')
+                ->create(),
+        );
     }
 
     /** @param array<Sequence> $sequences */
