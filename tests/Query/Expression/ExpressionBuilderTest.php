@@ -34,7 +34,7 @@ class ExpressionBuilderTest extends TestCase
         self::assertEquals($expected, (string) $composite);
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{list<string|CompositeExpression>, string}> */
     public static function provideDataForAnd(): iterable
     {
         return [
@@ -86,7 +86,7 @@ class ExpressionBuilderTest extends TestCase
         self::assertEquals($expected, (string) $composite);
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{list<string|CompositeExpression>, string}> */
     public static function provideDataForOr(): iterable
     {
         return [
@@ -137,7 +137,7 @@ class ExpressionBuilderTest extends TestCase
         self::assertEquals($expected, $part);
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{string, string, string, string}> */
     public static function provideDataForComparison(): iterable
     {
         return [

@@ -127,7 +127,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /** @return mixed[][] */
+    /** @return array<string, array{string, mixed}> */
     public static function booleanProvider(): iterable
     {
         return [
@@ -145,7 +145,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /** @return mixed[][] */
+    /** @return array<string, array{string, mixed}> */
     public static function integerProvider(): iterable
     {
         return [
@@ -162,7 +162,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /** @return mixed[][] */
+    /** @return array<string, array{string, mixed}> */
     public static function floatProvider(): iterable
     {
         return [
@@ -186,7 +186,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /** @return mixed[][] */
+    /** @return array<string, array{string, mixed}> */
     public static function toStringProvider(): iterable
     {
         return [
@@ -218,7 +218,7 @@ class TypeConversionTest extends FunctionalTestCase
         );
     }
 
-    /** @return mixed[][] */
+    /** @return array<string, array{string, DateTime}> */
     public static function toDateTimeProvider(): iterable
     {
         return [

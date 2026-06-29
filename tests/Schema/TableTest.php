@@ -1477,7 +1477,7 @@ class TableTest extends TestCase
         self::assertFalse($table->hasForeignKey('foo'));
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{string}> */
     public static function getNormalizesAssetNames(): iterable
     {
         return [

@@ -1195,7 +1195,7 @@ abstract class AbstractComparatorTestCase extends TestCase
         self::assertSame(! $equals, $diff2->hasCommentChanged());
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{string, string, bool}> */
     public static function getCompareColumnComments(): iterable
     {
         return [

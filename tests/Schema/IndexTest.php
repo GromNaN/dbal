@@ -19,7 +19,7 @@ class IndexTest extends TestCase
 {
     use VerifyDeprecations;
 
-    /** @param mixed[] $options */
+    /** @param array<string, mixed> $options */
     private function createIndex(bool $unique = false, bool $primary = false, array $options = []): Index
     {
         return new Index('foo', ['bar', 'baz'], $unique, $primary, [], $options);
@@ -127,7 +127,7 @@ class IndexTest extends TestCase
         self::assertSame($expected, $index2->isFulfilledBy($index1));
     }
 
-    /** @return mixed[][] */
+    /** @return array<string, array{non-empty-list<string>, list<?int>, array<int, ?int>, bool}> */
     public static function indexLengthProvider(): iterable
     {
         return [
