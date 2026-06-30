@@ -22,8 +22,8 @@ class StatementTest extends FunctionalTestCase
     }
 
     /**
-     * @param mixed[] $params
-     * @param mixed[] $expected
+     * @param list<mixed>|array<string, mixed> $params
+     * @param array<string, mixed>             $expected
      */
     #[DataProvider('queryConversionProvider')]
     public function testQueryConversion(string $query, array $params, array $expected): void
@@ -34,7 +34,7 @@ class StatementTest extends FunctionalTestCase
         );
     }
 
-    /** @return array<string, array<int, mixed>> */
+    /** @return array<string, array{string, list<mixed>|array<string, mixed>, array<string, mixed>}> */
     public static function queryConversionProvider(): iterable
     {
         return [
