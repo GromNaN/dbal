@@ -33,7 +33,7 @@ class ForeignKeyConstraintTest extends TestCase
         self::assertSame($expectedResult, $foreignKey->intersectsIndexColumns($index));
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{non-empty-list<string>, bool}> */
     public static function getIntersectsIndexColumnsData(): iterable
     {
         return [
@@ -70,7 +70,7 @@ class ForeignKeyConstraintTest extends TestCase
         self::assertSame($expectedUnqualifiedTableName, $foreignKey->getUnqualifiedForeignTableName());
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{string, string}> */
     public static function getUnqualifiedForeignTableNameData(): iterable
     {
         return [

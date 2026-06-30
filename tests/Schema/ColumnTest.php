@@ -139,7 +139,7 @@ class ColumnTest extends TestCase
         self::assertSame($isQuoted, $column->isQuoted());
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{string, bool}> */
     public static function getIsQuoted(): iterable
     {
         return [

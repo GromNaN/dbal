@@ -142,7 +142,7 @@ class OraclePlatformTest extends AbstractPlatformTestCase
         return 'ALTER TABLE test ADD FOREIGN KEY (fk_name_id) REFERENCES other_table (id)';
     }
 
-    /** @param mixed[] $options */
+    /** @param array<string, mixed> $options */
     #[DataProvider('getGeneratesAdvancedForeignKeyOptionsSQLData')]
     public function testGeneratesAdvancedForeignKeyOptionsSQL(array $options, string $expectedSql): void
     {
@@ -151,7 +151,7 @@ class OraclePlatformTest extends AbstractPlatformTestCase
         self::assertSame($expectedSql, $this->platform->getAdvancedForeignKeyOptionsSQL($foreignKey));
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{array<string, mixed>, string}> */
     public static function getGeneratesAdvancedForeignKeyOptionsSQLData(): iterable
     {
         return [
@@ -479,7 +479,7 @@ SQL
         self::assertSame($expectedSql, $this->platform->getDropAutoincrementSql($table));
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{string, list<string>}> */
     public static function getReturnsDropAutoincrementSQL(): iterable
     {
         return [

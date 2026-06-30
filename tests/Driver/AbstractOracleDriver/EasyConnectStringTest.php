@@ -13,7 +13,7 @@ class EasyConnectStringTest extends TestCase
 {
     use VerifyDeprecations;
 
-    /** @param mixed[] $params */
+    /** @param array<string, mixed> $params */
     #[DataProvider('connectionParametersProvider')]
     public function testFromConnectionParameters(array $params, string $expected): void
     {
@@ -22,7 +22,7 @@ class EasyConnectStringTest extends TestCase
         self::assertSame($expected, (string) $string);
     }
 
-    /** @return iterable<string, array<int, mixed>> */
+    /** @return iterable<string, array{array<string, mixed>, string}> */
     public static function connectionParametersProvider(): iterable
     {
         return [

@@ -226,7 +226,7 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
         );
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{string, string}> */
     public static function serialTypes(): iterable
     {
         return [

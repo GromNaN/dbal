@@ -60,7 +60,7 @@ class JsonObjectTest extends TestCase
         self::assertEquals($expectedValue, $phpValue);
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{mixed, mixed}> */
     public static function providerJsonString(): iterable
     {
         $value         = new stdClass();
@@ -83,7 +83,7 @@ class JsonObjectTest extends TestCase
         $this->type->convertToPHPValue($data, $this->platform);
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{string}> */
     public static function providerFailure(): iterable
     {
         return [['a'], ['{']];
@@ -118,7 +118,7 @@ class JsonObjectTest extends TestCase
         self::assertSame($expectedValue, $databaseValue);
     }
 
-    /** @return mixed[][] */
+    /** @return list<array{mixed, mixed}> */
     public static function providerPHPValue(): iterable
     {
         $source         = new stdClass();

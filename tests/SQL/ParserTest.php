@@ -27,7 +27,7 @@ class ParserTest extends TestCase implements Visitor
         $this->assertParsed($expected);
     }
 
-    /** @return iterable<string,list<mixed>> */
+    /** @return iterable<string, array{bool, string, string}> */
     public static function statementsWithParametersProvider(): iterable
     {
         foreach (self::getModes() as $mode => $mySQLStringEscaping) {
@@ -37,7 +37,7 @@ class ParserTest extends TestCase implements Visitor
         }
     }
 
-    /** @return iterable<list<string>> */
+    /** @return iterable<array{string, string}> */
     private static function getStatementsWithParameters(): iterable
     {
         yield [
@@ -314,7 +314,7 @@ SQL
         $this->assertParsed($sql);
     }
 
-    /** @return iterable<string,list<mixed>> */
+    /** @return iterable<string, array{bool, string}> */
     public static function statementsWithoutParametersProvider(): iterable
     {
         foreach (self::getModes() as $mode => $mySQLStringEscaping) {

@@ -1117,15 +1117,10 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertFalse($columns[1]->getUnsigned());
     }
 
-    /**
-     * @param non-empty-string $name
-     * @param mixed[]          $data
-     */
-    protected function createTestTable(string $name, array $data = []): Table
+    /** @param non-empty-string $name */
+    protected function createTestTable(string $name): Table
     {
-        $options = $data['options'] ?? [];
-
-        $table = $this->getTestTable($name, $options);
+        $table = $this->getTestTable($name);
 
         $this->dropAndCreateTable($table);
 
@@ -1133,8 +1128,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
     }
 
     /**
-     * @param non-empty-string $unquotedName
-     * @param mixed[]          $options
+     * @param non-empty-string     $unquotedName
+     * @param array<string, mixed> $options
      */
     protected function getTestTable(string $unquotedName, array $options = []): Table
     {
