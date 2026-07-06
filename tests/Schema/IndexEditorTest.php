@@ -85,6 +85,19 @@ class IndexEditorTest extends TestCase
         ], $index->getIndexedColumns());
     }
 
+    public function testCreateAppliesColumnLengthToTheCorrectColumn(): void
+    {
+        $userId   = new IndexedColumn(UnqualifiedName::unquoted('user_id'), null);
+        $lastName = new IndexedColumn(UnqualifiedName::unquoted('last_name'), 16);
+
+        $index = Index::editor()
+            ->setName($this->createName())
+            ->setColumns($userId, $lastName)
+            ->create();
+
+        self::assertEquals([$userId, $lastName], $index->getIndexedColumns());
+    }
+
     public function testPreservesRegularIndexProperties(): void
     {
         $index1 = new Index(
