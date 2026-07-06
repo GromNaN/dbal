@@ -185,16 +185,20 @@ final class IndexEditor
         }
 
         $columnNames = $lengths = $options = $flags = [];
-        foreach ($this->columns as $i => $column) {
+        $hasLength   = false;
+
+        foreach ($this->columns as $column) {
             $columnNames[] = $column->getColumnName()->toString();
 
-            $length = $column->getLength();
+            $length    = $column->getLength();
+            $lengths[] = $length;
+
             if ($length !== null) {
-                $lengths[$i] = $column->getLength();
+                $hasLength = true;
             }
         }
 
-        if (count($lengths) !== 0) {
+        if ($hasLength) {
             $options['lengths'] = $lengths;
         }
 
