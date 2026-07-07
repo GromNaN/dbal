@@ -98,6 +98,20 @@ class IndexEditorTest extends TestCase
         self::assertEquals([$userId, $lastName], $index->getIndexedColumns());
     }
 
+    public function testAddColumn(): void
+    {
+        $index = Index::editor()
+            ->setName($this->createName())
+            ->addUnquotedColumnName('last_name', 16)
+            ->addQuotedColumnName('user_id')
+            ->create();
+
+        self::assertEquals([
+            new IndexedColumn(UnqualifiedName::unquoted('last_name'), 16),
+            new IndexedColumn(UnqualifiedName::quoted('user_id'), null),
+        ], $index->getIndexedColumns());
+    }
+
     public function testPreservesRegularIndexProperties(): void
     {
         $index1 = new Index(

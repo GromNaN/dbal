@@ -19,7 +19,6 @@ use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
-use Doctrine\DBAL\Schema\Index\IndexedColumn;
 use Doctrine\DBAL\Schema\Index\IndexType;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
@@ -1623,17 +1622,12 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             ->setIndexes(
                 Index::editor()
                     ->setUnquotedName('partial_long_column_idx')
-                    ->setColumns(
-                        new IndexedColumn(UnqualifiedName::unquoted('long_column'), 4),
-                    )
+                    ->addUnquotedColumnName('long_column', 4)
                     ->create(),
                 Index::editor()
                     ->setUnquotedName('standard_and_partial_idx')
-                    ->setColumns(
-                        new IndexedColumn(UnqualifiedName::unquoted('standard_column'), null),
-                        new IndexedColumn(UnqualifiedName::unquoted('long_column'), 2),
-                    )
-                    ->setUnquotedColumnNames('standard_column', 'long_column')
+                    ->addUnquotedColumnName('standard_column')
+                    ->addUnquotedColumnName('long_column', 2)
                     ->create(),
             )
             ->create();
