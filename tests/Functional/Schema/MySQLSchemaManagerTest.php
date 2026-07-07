@@ -13,9 +13,7 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp;
 use Doctrine\DBAL\Schema\Index;
-use Doctrine\DBAL\Schema\Index\IndexedColumn;
 use Doctrine\DBAL\Schema\Index\IndexType;
-use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\Functional\Schema\MySQL\CustomType;
@@ -115,9 +113,7 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
     {
         $index = Index::editor()
             ->setUnquotedName('text_index')
-            ->setColumns(
-                new IndexedColumn(UnqualifiedName::unquoted('text'), 128),
-            )
+            ->addUnquotedColumnName('text', 128)
             ->create();
 
         $table = Table::editor()
