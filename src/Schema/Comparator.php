@@ -357,14 +357,19 @@ class Comparator
      */
     private function detectRenamedIndexes(array &$addedIndexes, array &$removedIndexes): array
     {
-        $candidatesByName = [];
+        $candidatesByName       = [];
+        $removedIndexMatchCount = [];
 
         // Gather possible rename candidates by comparing each added and removed index based on semantics.
         foreach ($addedIndexes as $addedIndexKey => $addedIndex) {
             foreach ($removedIndexes as $removedIndexKey => $removedIndex) {
-                if (! $this->diffIndex($addedIndex, $removedIndex)) {
-                    $candidatesByName[$addedIndex->getName()][] = [$removedIndexKey, $addedIndexKey];
+                if ($this->diffIndex($addedIndex, $removedIndex)) {
+                    continue;
                 }
+
+                $candidatesByName[$addedIndex->getName()][] = [$removedIndexKey, $addedIndexKey];
+
+                $removedIndexMatchCount[$removedIndexKey] = ($removedIndexMatchCount[$removedIndexKey] ?? 0) + 1;
             }
         }
 
@@ -381,12 +386,13 @@ class Comparator
 
             [$removedIndexKey, $addedIndexKey] = $candidates[0];
 
-            $removedIndex     = $removedIndexes[$removedIndexKey];
-            $removedIndexName = strtolower($removedIndex->getName());
-
-            if (isset($renamedIndexes[$removedIndexName])) {
+            // Likewise, a removed index that matches more than one added index is ambiguous.
+            if ($removedIndexMatchCount[$removedIndexKey] > 1) {
                 continue;
             }
+
+            $removedIndex     = $removedIndexes[$removedIndexKey];
+            $removedIndexName = strtolower($removedIndex->getName());
 
             $addedIndex = $addedIndexes[$addedIndexKey];
 
