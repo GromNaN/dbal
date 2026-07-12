@@ -10,9 +10,11 @@ use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnEditor;
+use Doctrine\DBAL\Schema\Exception\UnsupportedName;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Index\IndexType;
+use Doctrine\DBAL\Schema\Metadata\MetadataProvider;
 use Doctrine\DBAL\Schema\Name\Identifier;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
@@ -676,5 +678,76 @@ final class SchemaManagerTest extends FunctionalTestCase
         }
 
         return null;
+    }
+
+    /** @param callable(MetadataProvider, ?non-empty-string, non-empty-string): iterable<mixed> $introspect */
+    #[DataProvider('perTableIntrospectionProvider')]
+    public function testIntrospectionWithSchemaNameWithoutSchemaSupport(callable $introspect): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+        if ($platform->supportsSchemas()) {
+            self::markTestSkipped('The platform supports schemas.');
+        }
+
+        $provider = $platform->createMetadataProvider($this->connection);
+
+        $this->expectException(UnsupportedName::class);
+
+        $introspect($provider, 'billing', 'orders');
+    }
+
+    /** @param callable(MetadataProvider, ?non-empty-string, non-empty-string): iterable<mixed> $introspect */
+    #[DataProvider('perTableIntrospectionProvider')]
+    public function testIntrospectionWithoutSchemaNameWithSchemaSupport(callable $introspect): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+        if (! $platform->supportsSchemas()) {
+            self::markTestSkipped('The platform does not support schemas.');
+        }
+
+        $provider = $platform->createMetadataProvider($this->connection);
+
+        $this->expectException(UnsupportedName::class);
+
+        $introspect($provider, null, 'orders');
+    }
+
+    /**
+     * @return iterable<string, array{callable(
+     *     MetadataProvider,
+     *     ?non-empty-string,
+     *     non-empty-string,
+     * ): iterable<mixed>}> */
+    public static function perTableIntrospectionProvider(): iterable
+    {
+        yield 'columns' => [
+            static function (MetadataProvider $provider, $schemaName, $tableName): iterable {
+                return $provider->getTableColumnsForTable($schemaName, $tableName);
+            },
+        ];
+
+        yield 'indexes' => [
+            static function (MetadataProvider $provider, $schemaName, $tableName): iterable {
+                return $provider->getIndexColumnsForTable($schemaName, $tableName);
+            },
+        ];
+
+        yield 'primary key constraint' => [
+            static function (MetadataProvider $provider, $schemaName, $tableName): iterable {
+                return $provider->getPrimaryKeyConstraintColumnsForTable($schemaName, $tableName);
+            },
+        ];
+
+        yield 'foreign key constraints' => [
+            static function (MetadataProvider $provider, $schemaName, $tableName): iterable {
+                return $provider->getForeignKeyConstraintColumnsForTable($schemaName, $tableName);
+            },
+        ];
+
+        yield 'options' => [
+            static function (MetadataProvider $provider, $schemaName, $tableName): iterable {
+                return $provider->getTableOptionsForTable($schemaName, $tableName);
+            },
+        ];
     }
 }
