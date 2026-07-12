@@ -15,6 +15,8 @@ use Doctrine\DBAL\Schema\Introspection\MetadataProcessor\IndexColumnMetadataProc
 use Doctrine\DBAL\Schema\Introspection\MetadataProcessor\PrimaryKeyConstraintColumnMetadataProcessor;
 use Doctrine\DBAL\Schema\Introspection\MetadataProcessor\SequenceMetadataProcessor;
 use Doctrine\DBAL\Schema\Introspection\MetadataProcessor\ViewMetadataProcessor;
+use Doctrine\DBAL\Schema\Metadata\ForeignKeyConstraintColumnMetadataRow;
+use Doctrine\DBAL\Schema\Metadata\IndexColumnMetadataRow;
 use Doctrine\DBAL\Schema\Metadata\MetadataProvider;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
@@ -217,30 +219,14 @@ final readonly class IntrospectingSchemaProvider implements SchemaProvider
      */
     private function getIndexesForAllTables(): array
     {
-        $editors   = [];
         $processor = new IndexColumnMetadataProcessor();
 
-        foreach ($this->metadataProvider->getIndexColumnsForAllTables() as $row) {
-            $schemaName = $row->getSchemaName() ?? self::NULL_SCHEMA_KEY;
-            $tableName  = $row->getTableName();
-            $indexName  = $row->getIndexName();
-
-            if (! isset($editors[$schemaName][$tableName][$indexName])) {
-                $editors[$schemaName][$tableName][$indexName] = $processor->initializeEditor($row);
-            }
-
-            $processor->applyRow($editors[$schemaName][$tableName][$indexName], $row);
-        }
-
-        return array_map(
-            static fn (array $editors): array => array_map(
-                static fn (array $editors): array => array_map(
-                    static fn (IndexEditor $editor): Index => $editor->create(),
-                    array_values($editors),
-                ),
-                $editors,
-            ),
-            $editors,
+        return $this->groupByTable(
+            static fn (IndexColumnMetadataRow $row): string => $row->getIndexName(),
+            $processor->initializeEditor(...),
+            $processor->applyRow(...),
+            static fn (IndexEditor $editor): Index => $editor->create(),
+            $this->metadataProvider->getIndexColumnsForAllTables(),
         );
     }
 
@@ -325,28 +311,59 @@ final readonly class IntrospectingSchemaProvider implements SchemaProvider
      */
     private function getForeignKeyConstraintsForAllTables(): array
     {
-        $editors   = [];
         $processor = new ForeignKeyConstraintColumnMetadataProcessor($this->currentSchemaName);
 
-        foreach ($this->metadataProvider->getForeignKeyConstraintColumnsForAllTables() as $row) {
+        return $this->groupByTable(
+            static fn (ForeignKeyConstraintColumnMetadataRow $row): int|string => $row->getId(),
+            $processor->initializeEditor(...),
+            $processor->applyRow(...),
+            static fn (ForeignKeyConstraintEditor $editor): ForeignKeyConstraint => $editor->create(),
+            $this->metadataProvider->getForeignKeyConstraintColumnsForAllTables(),
+        );
+    }
+
+    /**
+     * Groups rows by schema and table, builds one editor per grouping key, and creates the objects.
+     *
+     * If the underlying database does not support schemas, the schema key will be {@link NULL_SCHEMA_KEY}.
+     *
+     * @param callable(R): (int|string) $getKey
+     * @param callable(R): E            $initializeEditor
+     * @param callable(E, R): void      $applyRow
+     * @param callable(E): T            $create
+     * @param iterable<R>               $rows
+     *
+     * @return array<string, array<non-empty-string, list<T>>>
+     *
+     * @template R of ForeignKeyConstraintColumnMetadataRow|IndexColumnMetadataRow
+     * @template E of object
+     * @template T of object
+     */
+    private function groupByTable(
+        callable $getKey,
+        callable $initializeEditor,
+        callable $applyRow,
+        callable $create,
+        iterable $rows,
+    ): array {
+        $editors = [];
+
+        foreach ($rows as $row) {
             $schemaName = $row->getSchemaName() ?? self::NULL_SCHEMA_KEY;
             $tableName  = $row->getTableName();
-            $id         = $row->getId();
+            $key        = $getKey($row);
 
-            if (! isset($editors[$schemaName][$tableName][$id])) {
-                $editors[$schemaName][$tableName][$id] = $processor->initializeEditor($row);
+            if (! isset($editors[$schemaName][$tableName][$key])) {
+                $editors[$schemaName][$tableName][$key] = $initializeEditor($row);
             }
 
-            $processor->applyRow($editors[$schemaName][$tableName][$id], $row);
+            $applyRow($editors[$schemaName][$tableName][$key], $row);
         }
 
         return array_map(
-            static fn (array $editors): array => array_map(
-                static fn (array $editors): array => array_map(
-                    static fn (ForeignKeyConstraintEditor $editor): ForeignKeyConstraint => $editor->create(),
-                    array_values($editors),
-                ),
-                $editors,
+            static fn (array $tables): array => array_map(
+                static fn (array $editors): array => array_map($create, array_values($editors)),
+                $tables,
             ),
             $editors,
         );
