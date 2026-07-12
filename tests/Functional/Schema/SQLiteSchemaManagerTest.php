@@ -16,6 +16,7 @@ use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\SQLiteSchemaManager;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
+use Doctrine\DBAL\Schema\UniqueConstraint;
 use Doctrine\DBAL\Types\BlobType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -410,6 +411,69 @@ SQL;
 
         self::assertSame(['artist_id'], $foreignKey2->getLocalColumns());
         self::assertSame(['id'], $foreignKey2->getForeignColumns());
+    }
+
+    /** @throws Exception */
+    public function testIntrospectMultipleAnonymousUniqueConstraints(): void
+    {
+        $this->dropTableIfExists('t');
+
+        $this->connection->executeStatement(<<<'DDL'
+        CREATE TABLE t (
+          a INTEGER,
+          b INTEGER,
+          UNIQUE (a),
+          UNIQUE (b)
+        )
+        DDL);
+
+        $table = $this->schemaManager->introspectTableByUnquotedName('t');
+
+        /** @var list<UniqueConstraint> $uniqueConstraints */
+        $uniqueConstraints = array_values($table->getUniqueConstraints());
+        self::assertCount(2, $uniqueConstraints);
+
+        foreach ($uniqueConstraints as $uniqueConstraint) {
+            self::assertNull($uniqueConstraint->getObjectName());
+        }
+    }
+
+    /** @throws Exception */
+    public function testIntrospectMultipleNamedUniqueConstraints(): void
+    {
+        $this->dropTableIfExists('t');
+
+        // SQLite does not report a unique constraint's declared name; it must be reconstructed and
+        // matched to the right constraint by declaration order.
+        $this->connection->executeStatement(<<<'DDL'
+        CREATE TABLE t (
+          a INTEGER,
+          b INTEGER,
+          c INTEGER,
+          d INTEGER,
+          PRIMARY KEY (a, b),
+          CONSTRAINT uq_c UNIQUE (c),
+          CONSTRAINT uq_d UNIQUE (d)
+        )
+        DDL);
+
+        $table = $this->schemaManager->introspectTableByUnquotedName('t');
+
+        $namesByColumn = [];
+        foreach ($table->getUniqueConstraints() as $uniqueConstraint) {
+            $name = $uniqueConstraint->getObjectName();
+            self::assertNotNull($name);
+
+            $columns = array_map(
+                static fn (UnqualifiedName $column): string => $column->getIdentifier()->getValue(),
+                $uniqueConstraint->getColumnNames(),
+            );
+            self::assertCount(1, $columns);
+
+            $namesByColumn[$columns[0]] = $name->getIdentifier()->getValue();
+        }
+
+        self::assertSame(['c' => 'uq_c', 'd' => 'uq_d'], $namesByColumn);
     }
 
     /** @throws Exception */
