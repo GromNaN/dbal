@@ -25,7 +25,6 @@ use PHPUnit\Framework\TestCase;
 
 use function array_map;
 use function array_values;
-use function count;
 use function sprintf;
 use function usort;
 
@@ -137,23 +136,24 @@ abstract class FunctionalTestCase extends TestCase
         $normalizedSchemaName = $schemaName->getIdentifier()
             ->toNormalizedValue($folding);
 
-        $schemaManager  = $this->connection->createSchemaManager();
-        $databaseSchema = $schemaManager->introspectSchema();
+        $schemaManager = $this->connection->createSchemaManager();
 
-        $sequencesToDrop = [];
-        foreach ($databaseSchema->getSequences() as $sequence) {
-            $qualifier = $sequence->getObjectName()
-                ->getQualifier();
+        $schemaToDrop = Schema::editor();
 
-            if ($qualifier === null || $qualifier->toNormalizedValue($folding) !== $normalizedSchemaName) {
-                continue;
+        if ($platform->supportsSequences()) {
+            foreach ($schemaManager->introspectSequences() as $sequence) {
+                $qualifier = $sequence->getObjectName()
+                    ->getQualifier();
+
+                if ($qualifier === null || $qualifier->toNormalizedValue($folding) !== $normalizedSchemaName) {
+                    continue;
+                }
+
+                $schemaToDrop->addSequence($sequence);
             }
-
-            $sequencesToDrop[] = $sequence;
         }
 
-        $tablesToDrop = [];
-        foreach ($databaseSchema->getTables() as $table) {
+        foreach ($schemaManager->introspectTables() as $table) {
             $qualifier = $table->getObjectName()
                 ->getQualifier();
 
@@ -161,17 +161,10 @@ abstract class FunctionalTestCase extends TestCase
                 continue;
             }
 
-            $tablesToDrop[] = $table;
+            $schemaToDrop->addTable($table);
         }
 
-        if (count($sequencesToDrop) > 0 || count($tablesToDrop) > 0) {
-            $schemaManager->dropSchemaObjects(
-                Schema::editor()
-                    ->setTables(...$tablesToDrop)
-                    ->setSequences(...$sequencesToDrop)
-                    ->create(),
-            );
-        }
+        $schemaManager->dropSchemaObjects($schemaToDrop->create());
 
         try {
             $schemaManager->dropSchema($schemaName->toSQL($platform));
