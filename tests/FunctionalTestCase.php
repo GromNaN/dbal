@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
 use Doctrine\DBAL\Platforms\Exception\NotSupported;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Index\IndexedColumn;
@@ -234,7 +235,7 @@ abstract class FunctionalTestCase extends TestCase
 
     /**
      * @param non-empty-list<UnqualifiedName> $expected
-     * @param non-empty-list<UnqualifiedName> $actual
+     * @param list<UnqualifiedName>           $actual
      *
      * @throws Exception
      */
@@ -372,6 +373,49 @@ abstract class FunctionalTestCase extends TestCase
         return array_map(
             fn (UnqualifiedName $name): UnqualifiedName => $this->toQuotedUnqualifiedName($name),
             $names,
+        );
+    }
+
+    /** @throws Exception */
+    protected function toQuotedColumn(Column $column): Column
+    {
+        return $column->edit()
+            ->setName($this->toQuotedUnqualifiedName($column->getObjectName()))
+            ->create();
+    }
+
+    /**
+     * @param non-empty-list<Column> $expected
+     * @param list<Column>           $actual
+     *
+     * @throws Exception
+     */
+    protected function assertColumnNamesEqual(array $expected, array $actual): void
+    {
+        $this->assertUnqualifiedNameListEquals(
+            array_map(
+                static fn (Column $column): UnqualifiedName => $column->getObjectName(),
+                $expected,
+            ),
+            array_map(
+                static fn (Column $column): UnqualifiedName => $column->getObjectName(),
+                $actual,
+            ),
+        );
+    }
+
+    /**
+     * @param list<Column> $columns
+     *
+     * @return ($columns is non-empty-list ? non-empty-list<Column> : list<Column>)
+     *
+     * @throws Exception
+     */
+    protected function toQuotedColumnList(array $columns): array
+    {
+        return array_map(
+            fn (Column $column): Column => $this->toQuotedColumn($column),
+            $columns,
         );
     }
 
