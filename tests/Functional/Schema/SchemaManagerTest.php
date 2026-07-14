@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Tests\Functional\Schema;
 
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
@@ -312,6 +313,63 @@ final class SchemaManagerTest extends FunctionalTestCase
 
         $table = $this->schemaManager->introspectTable('"example');
         self::assertCount(1, $table->getColumns());
+    }
+
+    public function testIntrospectionDistinguishesTablesWhoseNamesDifferOnlyInCase(): void
+    {
+        $id = Column::editor()
+            ->setQuotedName('id')
+            ->setTypeName(Types::INTEGER)
+            ->create();
+
+        $lowerColumn = Column::editor()
+            ->setQuotedName('lower_only')
+            ->setTypeName(Types::INTEGER)
+            ->create();
+
+        $upperColumn = Column::editor()
+            ->setQuotedName('UPPER_ONLY')
+            ->setTypeName(Types::INTEGER)
+            ->create();
+
+        $lowerTable = Table::editor()
+            ->setQuotedName('contract')
+            ->setColumns($id, $lowerColumn)
+            ->create();
+
+        $upperTable = Table::editor()
+            ->setQuotedName('CONTRACT')
+            ->setColumns($id, $upperColumn)
+            ->create();
+
+        $platform = $this->connection->getDatabasePlatform();
+        $this->dropTableIfExists($upperTable->getObjectName()->toSQL($platform));
+        $this->dropTableIfExists($lowerTable->getObjectName()->toSQL($platform));
+
+        $this->schemaManager->createTable($lowerTable);
+
+        try {
+            $this->schemaManager->createTable($upperTable);
+        } catch (TableExistsException) {
+            self::markTestSkipped('The database compares table names case-insensitively.');
+        }
+
+        try {
+            $this->assertColumnNamesEqual(
+                [$id, $lowerColumn],
+                $this->schemaManager->introspectTableColumnsByQuotedName('contract'),
+            );
+
+            $this->assertColumnNamesEqual(
+                [$id, $upperColumn],
+                $this->schemaManager->introspectTableColumnsByQuotedName('CONTRACT'),
+            );
+        } finally {
+            // Leaving tables whose names differ only in case behind would poison the schema for the other tests
+            // that use introspectSchema(), since a Schema cannot represent such tables.
+            $this->schemaManager->dropTable($upperTable->getObjectName()->toSQL($platform));
+            $this->schemaManager->dropTable($lowerTable->getObjectName()->toSQL($platform));
+        }
     }
 
     #[TestWith([true])]
