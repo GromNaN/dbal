@@ -111,7 +111,13 @@ EOS);
             ),
         ];
 
-        self::assertEquals($expected, $this->schemaManager->listTableForeignKeys('t1'));
+        try {
+            self::assertEquals($expected, $this->schemaManager->listTableForeignKeys('t1'));
+        } finally {
+            // Leaving t1 behind would poison the schema for the other tests that use introspectTables(),
+            // since it does not tolerate incomplete schemas.
+            $this->connection->executeStatement('DROP TABLE t1');
+        }
     }
 
     public function testColumnCollation(): void
