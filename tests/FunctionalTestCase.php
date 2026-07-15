@@ -18,6 +18,7 @@ use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Schema\UniqueConstraint;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Constraint\Callback;
@@ -618,6 +619,71 @@ abstract class FunctionalTestCase extends TestCase
             fn (ForeignKeyConstraint $constraint): ForeignKeyConstraint => $this->toQuotedForeignKeyConstraint(
                 $constraint,
             ),
+            $constraints,
+        );
+    }
+
+    /** @throws Exception */
+    protected function assertUniqueConstraintEquals(
+        UniqueConstraint $expected,
+        UniqueConstraint $actual,
+    ): void {
+        $expectedName = $expected->getObjectName();
+        $actualName   = $actual->getObjectName();
+
+        // ignore auto-generated name on the actual constraint
+        if ($expectedName === null && $actualName !== null) {
+            $actual = $actual->edit()
+                ->setName(null)
+                ->create();
+        }
+
+        self::assertEquals(
+            $this->toQuotedUniqueConstraint($expected),
+            $this->toQuotedUniqueConstraint($actual),
+        );
+    }
+
+    /** @throws Exception */
+    protected function toQuotedUniqueConstraint(UniqueConstraint $constraint): UniqueConstraint
+    {
+        $name = $constraint->getObjectName();
+
+        if ($name !== null) {
+            $name = $this->toQuotedUnqualifiedName($name);
+        }
+
+        return $constraint->edit()
+            ->setName($name)
+            ->setColumnNames(...$this->toQuotedUnqualifiedNameList($constraint->getColumnNames()))
+            ->create();
+    }
+
+    /**
+     * @param list<UniqueConstraint> $expected
+     * @param list<UniqueConstraint> $actual
+     *
+     * @throws Exception
+     */
+    protected function assertUniqueConstraintListEquals(array $expected, array $actual): void
+    {
+        self::assertEquals(
+            $this->toQuotedUniqueConstraintList($expected),
+            $this->toQuotedUniqueConstraintList($actual),
+        );
+    }
+
+    /**
+     * @param list<UniqueConstraint> $constraints
+     *
+     * @return list<UniqueConstraint>
+     *
+     * @throws Exception
+     */
+    protected function toQuotedUniqueConstraintList(array $constraints): array
+    {
+        return array_map(
+            fn (UniqueConstraint $constraint): UniqueConstraint => $this->toQuotedUniqueConstraint($constraint),
             $constraints,
         );
     }
