@@ -780,6 +780,27 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             )
             ->create();
 
+        $indexes = [
+            Index::editor()
+                ->setUnquotedName('idx_intro_name')
+                ->setUnquotedColumnNames('name')
+                ->setType(IndexType::UNIQUE)
+                ->create(),
+            Index::editor()
+                ->setUnquotedName('idx_intro_ref')
+                ->setUnquotedColumnNames('ref_id')
+                ->create(),
+        ];
+
+        $foreignKeyConstraints = [
+            ForeignKeyConstraint::editor()
+                ->setUnquotedName('fk_intro_ref')
+                ->setUnquotedReferencingColumnNames('ref_id')
+                ->setUnquotedReferencedTableName('alter_introspected_ref')
+                ->setUnquotedReferencedColumnNames('id')
+                ->create(),
+        ];
+
         $table = Table::editor()
             ->setUnquotedName('alter_introspected')
             ->setColumns(
@@ -806,25 +827,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
                     ->setUnquotedColumnNames('id')
                     ->create(),
             )
-            ->setIndexes(
-                Index::editor()
-                    ->setUnquotedName('idx_intro_name')
-                    ->setUnquotedColumnNames('name')
-                    ->setType(IndexType::UNIQUE)
-                    ->create(),
-                Index::editor()
-                    ->setUnquotedName('idx_intro_ref')
-                    ->setUnquotedColumnNames('ref_id')
-                    ->create(),
-            )
-            ->setForeignKeyConstraints(
-                ForeignKeyConstraint::editor()
-                    ->setUnquotedName('fk_intro_ref')
-                    ->setUnquotedReferencingColumnNames('ref_id')
-                    ->setUnquotedReferencedTableName('alter_introspected_ref')
-                    ->setUnquotedReferencedColumnNames('id')
-                    ->create(),
-            )
+            ->setIndexes(...$indexes)
+            ->setForeignKeyConstraints(...$foreignKeyConstraints)
             ->create();
 
         $platform = $this->connection->getDatabasePlatform();
@@ -850,39 +854,10 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $table = $this->schemaManager->introspectTableByUnquotedName('alter_introspected');
 
-        // Read indexed column names through the non-deprecated accessors so the result is independent
-        // of how the index was obtained (introspection marks the column names as quoted).
-        $indexedColumnNames = static function (Index $index): array {
-            return array_map(
-                static function (IndexedColumn $column): string {
-                    return strtolower($column->getColumnName()->getIdentifier()->getValue());
-                },
-                $index->getIndexedColumns(),
-            );
-        };
-
         // The indexes and foreign keys must survive the alteration.
-        self::assertTrue($table->hasIndex('idx_intro_name'));
-        self::assertSame(['name'], $indexedColumnNames($table->getIndex('idx_intro_name')));
-        self::assertSame(IndexType::UNIQUE, $table->getIndex('idx_intro_name')->getType());
-
-        self::assertTrue($table->hasIndex('idx_intro_ref'));
-        self::assertSame(['ref_id'], $indexedColumnNames($table->getIndex('idx_intro_ref')));
-
-        /** @var list<ForeignKeyConstraint> $foreignKeys */
-        $foreignKeys = array_values($table->getForeignKeys());
-        self::assertCount(1, $foreignKeys);
-        self::assertSame(
-            ['ref_id'],
-            array_map(
-                static fn (UnqualifiedName $name): string => strtolower($name->getIdentifier()->getValue()),
-                $foreignKeys[0]->getReferencingColumnNames(),
-            ),
-        );
-        self::assertSame(
-            'alter_introspected_ref',
-            strtolower($foreignKeys[0]->getReferencedTableName()->getUnqualifiedName()->getValue()),
-        );
+        $this->assertIndexEquals($indexes[0], $table->getIndex('idx_intro_name'));
+        $this->assertIndexEquals($indexes[1], $table->getIndex('idx_intro_ref'));
+        $this->assertForeignKeyConstraintListEquals($foreignKeyConstraints, array_values($table->getForeignKeys()));
     }
 
     public function testTableInNamespace(): void
