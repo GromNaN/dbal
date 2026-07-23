@@ -839,9 +839,13 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $this->schemaManager->createTable($referencedTable);
         $this->schemaManager->createTable($table);
 
+        $oldTable = $this->schemaManager->introspectTableByUnquotedName('alter_introspected');
+
+        // Guard against a vacuous comparison of the foreign keys below.
+        self::assertCount(1, $oldTable->getForeignKeys());
+
         // Modify an unrelated column to force a table alteration that does not touch
         // the indexed or referencing columns.
-        $oldTable = $this->schemaManager->introspectTableByUnquotedName('alter_introspected');
         $newTable = $oldTable->edit()
             ->modifyColumnByUnquotedName('weight', static function (ColumnEditor $editor): void {
                 $editor->setTypeName(Types::STRING)
@@ -854,10 +858,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $table = $this->schemaManager->introspectTableByUnquotedName('alter_introspected');
 
-        // The indexes and foreign keys must survive the alteration.
+        // The indexes and foreign keys must survive the alteration. The foreign keys are compared against
+        // the pre-alteration introspection because the referential actions of a foreign key created without
+        // explicit actions are reported inconsistently across platforms (e.g. MariaDB reports RESTRICT).
         $this->assertIndexEquals($indexes[0], $table->getIndex('idx_intro_name'));
         $this->assertIndexEquals($indexes[1], $table->getIndex('idx_intro_ref'));
-        $this->assertForeignKeyConstraintListEquals($foreignKeyConstraints, array_values($table->getForeignKeys()));
+        $this->assertForeignKeyConstraintListEquals(
+            array_values($oldTable->getForeignKeys()),
+            array_values($table->getForeignKeys()),
+        );
     }
 
     public function testTableInNamespace(): void
