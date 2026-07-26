@@ -830,7 +830,9 @@ class SQLitePlatform extends AbstractPlatform
 
             $changed      = false;
             $indexColumns = [];
-            foreach ($index->getColumns() as $columnName) {
+            // Use the unquoted column names so the lookup is agnostic of whether the index
+            // was introspected (which marks its column names as quoted) or built in memory.
+            foreach ($index->getUnquotedColumns() as $columnName) {
                 $normalizedColumnName = strtolower($columnName);
                 if (! isset($nameMap[$normalizedColumnName])) {
                     unset($indexes[$key]);
@@ -891,7 +893,9 @@ class SQLitePlatform extends AbstractPlatform
         foreach ($foreignKeys as $key => $constraint) {
             $changed      = false;
             $localColumns = [];
-            foreach ($constraint->getLocalColumns() as $columnName) {
+            // Use the unquoted column names so the lookup is agnostic of whether the constraint
+            // was introspected (which marks its column names as quoted) or built in memory.
+            foreach ($constraint->getUnquotedLocalColumns() as $columnName) {
                 $normalizedColumnName = strtolower($columnName);
                 if (! isset($nameMap[$normalizedColumnName])) {
                     unset($foreignKeys[$key]);

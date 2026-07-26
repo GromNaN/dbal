@@ -228,7 +228,7 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
         self::assertTrue(
             $this->schemaManager->createComparator()
-                ->compareTables($table, $onlineTable)
+                ->compareTables($onlineTable, $table)
                 ->isEmpty(),
         );
     }
@@ -619,7 +619,7 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertTrue(
             $this->schemaManager
                 ->createComparator()
-                ->compareTables($table, $onlineTable)
+                ->compareTables($onlineTable, $table)
                 ->isEmpty(),
         );
     }
@@ -738,7 +738,7 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertTrue(
             $this->schemaManager
                 ->createComparator()
-                ->compareTables($table, $onlineTable)
+                ->compareTables($onlineTable, $table)
                 ->isEmpty(),
         );
     }
@@ -815,7 +815,7 @@ SQL;
 
         $onlineTable = $this->schemaManager->introspectTableByUnquotedName('test_column_introspection');
 
-        $diff = $this->schemaManager->createComparator()->compareTables($table, $onlineTable);
+        $diff = $this->schemaManager->createComparator()->compareTables($onlineTable, $table);
 
         self::assertTrue($diff->isEmpty(), 'Tables should be identical.');
     }
