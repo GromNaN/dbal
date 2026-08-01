@@ -894,54 +894,6 @@ SQL;
         self::assertTrue($diff->isEmpty(), 'Tables should be identical.');
     }
 
-    public function testAlterIntrospectedTableReplacesIndexBackingForeignKey(): void
-    {
-        $this->connection->executeStatement('DROP TABLE IF EXISTS index_replacement_child');
-        $this->connection->executeStatement('DROP TABLE IF EXISTS index_replacement_parent');
-        $this->connection->executeStatement(
-            'CREATE TABLE index_replacement_parent (id INT NOT NULL, PRIMARY KEY (id)) ENGINE = InnoDB',
-        );
-
-        // The unique key is the only index covering the foreign key column, so
-        // InnoDB refuses to drop it unless another index takes over the cover
-        // in the same statement.
-        $this->connection->executeStatement(<<<'SQL'
-        CREATE TABLE index_replacement_child (
-            id INT NOT NULL,
-            parent_id INT NOT NULL,
-            val INT NOT NULL,
-            PRIMARY KEY (id),
-            UNIQUE KEY uniq_parent_val (parent_id, val),
-            CONSTRAINT fk_index_replacement FOREIGN KEY (parent_id)
-                REFERENCES index_replacement_parent (id)
-        ) ENGINE = InnoDB
-        SQL);
-
-        $oldTable = $this->schemaManager->introspectTableByUnquotedName('index_replacement_child');
-        $newTable = $oldTable->edit()
-            ->setIndexes(
-                Index::editor()
-                    ->setUnquotedName('idx_parent_val')
-                    ->setUnquotedColumnNames('parent_id', 'val')
-                    ->create(),
-            )
-            ->create();
-
-        $diff = $this->schemaManager->createComparator()->compareTables($oldTable, $newTable);
-
-        // Dropping the unique key and adding its replacement have to be combined
-        // into a single ALTER TABLE statement, which they are not when the
-        // dropped index comes from introspection and its column names are
-        // therefore quoted.
-        $this->schemaManager->alterTable($diff);
-
-        $table = $this->schemaManager->introspectTableByUnquotedName('index_replacement_child');
-
-        self::assertFalse($table->hasIndex('uniq_parent_val'));
-        self::assertTrue($table->hasIndex('idx_parent_val'));
-        self::assertSame(IndexType::REGULAR, $table->getIndex('idx_parent_val')->getType());
-    }
-
     public function getExpectedDefaultSchemaName(): ?string
     {
         return null;

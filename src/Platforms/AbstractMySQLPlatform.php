@@ -11,7 +11,6 @@ use Doctrine\DBAL\Platforms\Keywords\MySQLKeywords;
 use Doctrine\DBAL\Platforms\MySQL\MySQLMetadataProvider;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
-use Doctrine\DBAL\Schema\Index\IndexedColumn;
 use Doctrine\DBAL\Schema\MySQLSchemaManager;
 use Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -467,10 +466,8 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
         foreach ($diff->getDroppedIndexes() as $droppedIndex) {
             $sql = array_merge($sql, $this->getPreAlterTableAlterPrimaryKeySQL($diff, $droppedIndex));
 
-            $droppedIndexColumnNames = self::getUnquotedIndexedColumnNames($droppedIndex);
-
             foreach ($diff->getAddedIndexes() as $addedIndex) {
-                if ($droppedIndexColumnNames !== self::getUnquotedIndexedColumnNames($addedIndex)) {
+                if (! $this->indexesSpanSameColumns($droppedIndex, $addedIndex)) {
                     continue;
                 }
 
@@ -504,22 +501,26 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
     }
 
     /**
-     * Returns the names of the columns the index spans, unquoted.
-     *
-     * The names are read via the non-deprecated API so that the result does not
-     * depend on whether the index was introspected, in which case the
-     * introspection marks its column names as quoted, or built in memory.
-     *
-     * @return list<string>
+     * Returns whether the two indexes span the same columns in the same order.
      */
-    private static function getUnquotedIndexedColumnNames(Index $index): array
+    private function indexesSpanSameColumns(Index $index1, Index $index2): bool
     {
-        return array_map(
-            static function (IndexedColumn $indexedColumn): string {
-                return $indexedColumn->getColumnName()->getIdentifier()->getValue();
-            },
-            $index->getIndexedColumns(),
-        );
+        $columns1 = $index1->getIndexedColumns();
+        $columns2 = $index2->getIndexedColumns();
+
+        if (count($columns1) !== count($columns2)) {
+            return false;
+        }
+
+        $folding = $this->getUnquotedIdentifierFolding();
+
+        foreach ($columns1 as $i => $column1) {
+            if (! $column1->getColumnName()->equals($columns2[$i]->getColumnName(), $folding)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @return list<string> */
