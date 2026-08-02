@@ -466,8 +466,10 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
         foreach ($diff->getDroppedIndexes() as $droppedIndex) {
             $sql = array_merge($sql, $this->getPreAlterTableAlterPrimaryKeySQL($diff, $droppedIndex));
 
+            $droppedIndexColumns = $droppedIndex->getUnquotedColumns();
+
             foreach ($diff->getAddedIndexes() as $addedIndex) {
-                if (! $this->indexesSpanSameColumns($droppedIndex, $addedIndex)) {
+                if ($droppedIndexColumns !== $addedIndex->getUnquotedColumns()) {
                     continue;
                 }
 
@@ -498,29 +500,6 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
             parent::getPreAlterTableIndexForeignKeySQL($diff),
             $this->getPreAlterTableRenameIndexForeignKeySQL($diff),
         );
-    }
-
-    /**
-     * Returns whether the two indexes span the same columns in the same order.
-     */
-    private function indexesSpanSameColumns(Index $index1, Index $index2): bool
-    {
-        $columns1 = $index1->getIndexedColumns();
-        $columns2 = $index2->getIndexedColumns();
-
-        if (count($columns1) !== count($columns2)) {
-            return false;
-        }
-
-        $folding = $this->getUnquotedIdentifierFolding();
-
-        foreach ($columns1 as $i => $column1) {
-            if (! $column1->getColumnName()->equals($columns2[$i]->getColumnName(), $folding)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /** @return list<string> */
