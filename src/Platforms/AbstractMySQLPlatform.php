@@ -466,10 +466,8 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
         foreach ($diff->getDroppedIndexes() as $droppedIndex) {
             $sql = array_merge($sql, $this->getPreAlterTableAlterPrimaryKeySQL($diff, $droppedIndex));
 
-            $droppedIndexColumns = $droppedIndex->getUnquotedColumns();
-
             foreach ($diff->getAddedIndexes() as $addedIndex) {
-                if ($droppedIndexColumns !== $addedIndex->getUnquotedColumns()) {
+                if ($droppedIndex->getUnquotedColumns() !== $addedIndex->getUnquotedColumns()) {
                     continue;
                 }
 
